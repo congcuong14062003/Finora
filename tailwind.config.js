@@ -1,0 +1,1 @@
+export default {content:['./index.html','./src/**/*.{ts,tsx}'],darkMode:'class',theme:{extend:{colors:{emerald:{500:'#10b981'},ink:'#111827',muted:'#6b7280',canvas:'#f8fafc'},fontFamily:{sans:['Inter','ui-sans-serif','system-ui']}}},plugins:[]};

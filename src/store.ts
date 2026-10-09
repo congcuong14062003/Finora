@@ -1,0 +1,6 @@
+import {create} from 'zustand';
+import type {FinanceData} from './types';
+import {mockFinanceService} from './services/financeService';
+interface State{data:FinanceData|null;loading:boolean;error:string|null;theme:'light'|'dark';toast:string|null;load:()=>Promise<void>;update:(fn:(data:FinanceData)=>FinanceData)=>Promise<void>;setTheme:(theme:'light'|'dark')=>void;notify:(message:string)=>void}
+export const useFinance=create<State>((set,get)=>({data:null,loading:true,error:null,theme:(localStorage.getItem('finora:theme') as 'light'|'dark')||'light',toast:null,load:async()=>{try{set({loading:true,error:null});set({data:await mockFinanceService.load(),loading:false})}catch{set({error:'Không thể tải dữ liệu. Vui lòng thử lại.',loading:false})}},update:async fn=>{const previous=get().data;if(!previous)return;const next=fn(structuredClone(previous));try{await mockFinanceService.save(next);set({data:next,toast:'Đã lưu thay đổi'});setTimeout(()=>set({toast:null}),3600)}catch{set({error:'Không thể lưu thay đổi',toast:'Không thể lưu thay đổi'})}},setTheme:theme=>{localStorage.setItem('finora:theme',theme);set({theme})},notify:message=>{set({toast:message});setTimeout(()=>set({toast:null}),3600)}}));
+

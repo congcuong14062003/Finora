@@ -1,0 +1,22 @@
+import React,{useEffect} from 'react';
+import {createRoot} from 'react-dom/client';
+import {BrowserRouter,Route,Routes,Navigate} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {Layout} from './components/Layout';
+import Dashboard from './features/dashboard/Dashboard';
+import Transactions from './features/transactions/Transactions';
+import Accounts from './features/accounts/Accounts';
+import Categories from './features/categories/Categories';
+import Budgets from './features/budgets/Budgets';
+import Savings from './features/savings/Savings';
+import Debts from './features/debts/Debts';
+import Reports from './features/reports/Reports';
+import Recurring from './features/recurring/Recurring';
+import Settings from './features/settings/Settings';
+import Auth from './features/auth/Auth';
+import {useFinance} from './store';
+import {registerFinanceTools} from './lib/webmcp';
+import './styles.css';
+function Loading(){return <div className="app" style={{display:'flex',minHeight:'100vh'}}><div className="sidebar"/><div className="main" style={{width:'100%'}}><div className="topbar"/><main className="content"><div className="skeleton" style={{height:32,width:260,marginBottom:26}}/><div className="grid-stats">{Array.from({length:4},(_,i)=><div className="card stat" key={i}><div className="skeleton" style={{height:17,width:'48%'}}/><div className="skeleton" style={{height:29,width:'78%',marginTop:23}}/></div>)}</div><div className="rowcharts"><div className="card pad"><div className="skeleton" style={{height:240}}/></div><div className="card pad"><div className="skeleton" style={{height:240}}/></div></div></main></div></div>}
+function App(){const {load,loading,error}=useFinance();useEffect(()=>{load()},[load]);useEffect(()=>registerFinanceTools(),[]);if(loading)return <Loading/>;if(error)return <div className="app" style={{padding:40}}><div className="card pad">{error}<button className="btn" onClick={load}>Thử lại</button></div></div>;return <BrowserRouter><Routes><Route path="auth/:mode" element={<Auth/>}/><Route element={<Layout/>}><Route index element={<Dashboard/>}/><Route path="transactions" element={<Transactions/>}/><Route path="accounts" element={<Accounts/>}/><Route path="categories" element={<Categories/>}/><Route path="budgets" element={<Budgets/>}/><Route path="savings" element={<Savings/>}/><Route path="debts" element={<Debts/>}/><Route path="reports" element={<Reports/>}/><Route path="recurring" element={<Recurring/>}/><Route path="settings" element={<Settings/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Route></Routes></BrowserRouter>}
+createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={new QueryClient()}><App/></QueryClientProvider></React.StrictMode>);
