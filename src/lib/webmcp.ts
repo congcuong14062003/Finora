@@ -1,11 +1,18 @@
 import { z } from 'zod';
 import { useFinance } from '../store';
-import { totals, uid, todayKey } from './finance';
-import { parseVietnameseTransaction } from './nlpParser';
+import { totals, uid, todayKey, netWorth } from './finance';
+import { parseVietnameseCommand } from './nlpParser';
 import { createReconciliationTransaction, updateStreak } from './habit';
-import type { Transaction } from '../types';
+import {
+  calculateTrueSpendableBalance,
+  analyzeFinancialRisks,
+  calculateInvestmentSummary,
+  calculateFinancialFreedom,
+  MARKET_PRICES
+} from './riskAndInsightEngine';
+import type { Transaction, InvestmentAsset, Debt } from '../types';
 
-type Tool = {
+export type WebMCPTool = {
   name: string;
   title: string;
   description: string;
@@ -17,7 +24,7 @@ type Tool = {
 declare global {
   interface Document {
     modelContext?: {
-      registerTool: (tool: Tool, options?: { signal?: AbortSignal }) => void | Promise<void>;
+      registerTool: (tool: WebMCPTool, options?: { signal?: AbortSignal }) => void | Promise<void>;
     };
   }
 }
@@ -25,67 +32,100 @@ declare global {
 const transactionInput = z.object({
   name: z.string().trim().min(2),
   amount: z.number().int().positive(),
-  type: z.enum(['income', 'expense']),
-  categoryId: z.string(),
+  type: z.enum(['income', 'expense', 'transfer']),
+  categoryId: z.string().optional(),
   accountId: z.string(),
+  toAccountId: z.string().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   note: z.string().optional()
 });
 
-const reconcileInput = z.object({
-  accountId: z.string(),
-  actualBalance: z.number().int().nonnegative(),
-  note: z.string().optional()
+const smartCommandInput = z.object({
+  command: z.string().trim().min(3)
 });
 
-const quickParseInput = z.object({
-  text: z.string().trim().min(3)
+const investmentInput = z.object({
+  symbol: z.string().trim().min(1),
+  name: z.string().trim().optional(),
+  assetClass: z.enum(['stock', 'gold', 'crypto', 'savings', 'real_estate']),
+  quantity: z.number().positive(),
+  totalCostBasis: z.number().int().positive(),
+  currentUnitPrice: z.number().int().positive().optional(),
+  annualYieldRate: z.number().optional()
 });
 
 export function registerFinanceTools() {
   const context = document.modelContext;
-  if (!context?.registerTool) return () => {};
-
+  const registeredList: WebMCPTool[] = [];
   const controller = new AbortController();
-  const register = (tool: Tool) => {
-    try {
-      void Promise.resolve(context.registerTool(tool, { signal: controller.signal })).catch(() => {});
-    } catch {
-      /* unsupported browser */
+
+  const register = (tool: WebMCPTool) => {
+    registeredList.push(tool);
+    if (context?.registerTool) {
+      try {
+        void Promise.resolve(context.registerTool(tool, { signal: controller.signal })).catch(() => {});
+      } catch {
+        /* unsupported browser */
+      }
     }
   };
 
   // Tool 1: get_finance_summary
   register({
     name: 'get_finance_summary',
-    title: 'Read finance summary',
-    description: 'Read the current completed income, expenses and account count from the visible Finora demo.',
+    title: 'Get Complete Finance Summary',
+    description: 'Returns complete financial health summary: income, expense, true spendable balance, burn-rate exhaustion, risk count, passive income ratio, and investment PnL.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, untrustedContentHint: false },
     execute: async () => {
       const data = useFinance.getState().data;
       if (!data) throw new Error('Dữ liệu chưa sẵn sàng');
-      return { ...totals(data.transactions), accountCount: data.accounts.length };
+
+      const tot = totals(data.transactions);
+      const trueSpendable = calculateTrueSpendableBalance(data);
+      const risks = analyzeFinancialRisks(data);
+      const invSummary = calculateInvestmentSummary(data.investments || []);
+      const freedom = calculateFinancialFreedom(data);
+      const currentNetWorth = netWorth(data);
+
+      return {
+        income: tot.income,
+        expense: tot.expense,
+        netWorth: currentNetWorth,
+        trueSpendableBalance: trueSpendable.trueBalance,
+        dailySafeToSpend: trueSpendable.dailySafeToSpend,
+        burnRateDaysLeft: trueSpendable.burnRateDaysLeft,
+        burnRateExhaustionDate: trueSpendable.burnRateExhaustionDate,
+        riskAlertsCount: risks.length,
+        criticalRisksCount: risks.filter(r => r.level === 'critical').length,
+        passiveIncomeRatio: freedom.freedomRatio,
+        freedomRunwayMonths: freedom.freedomRunwayMonths,
+        totalInvestmentCurrentValue: invSummary.totalCurrentValue,
+        totalInvestmentPnL: invSummary.totalPnL,
+        totalInvestmentPnLPercent: invSummary.totalPnLPercent,
+        accountCount: data.accounts.length
+      };
     }
   });
 
   // Tool 2: create_transaction
   register({
     name: 'create_transaction',
-    title: 'Create transaction',
-    description: 'Create an income or expense transaction in the Finora demo and update the visible dashboard.',
+    title: 'Create Transaction',
+    description: 'Create an income, expense, or transfer transaction in Finora and update the live dashboard.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string' },
-        amount: { type: 'integer', minimum: 1 },
-        type: { type: 'string', enum: ['income', 'expense'] },
-        categoryId: { type: 'string' },
-        accountId: { type: 'string' },
+        name: { type: 'string', description: 'Transaction description' },
+        amount: { type: 'integer', minimum: 1, description: 'Amount in VND' },
+        type: { type: 'string', enum: ['income', 'expense', 'transfer'] },
+        categoryId: { type: 'string', description: 'Target category ID' },
+        accountId: { type: 'string', description: 'Source account ID' },
+        toAccountId: { type: 'string', description: 'Destination account ID (for transfer)' },
         date: { type: 'string', format: 'date' },
         note: { type: 'string' }
       },
-      required: ['name', 'amount', 'type', 'categoryId', 'accountId', 'date'],
+      required: ['name', 'amount', 'type', 'accountId', 'date'],
       additionalProperties: false
     },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
@@ -94,11 +134,9 @@ export function registerFinanceTools() {
       const state = useFinance.getState();
       const data = state.data;
       if (!data) throw new Error('Dữ liệu chưa sẵn sàng');
+
       if (!data.accounts.some(a => a.id === values.accountId && a.active)) {
-        throw new Error('Tài khoản không hợp lệ');
-      }
-      if (!data.categories.some(c => c.id === values.categoryId && c.type === values.type && !c.hidden)) {
-        throw new Error('Danh mục không hợp lệ');
+        throw new Error('Tài khoản nguồn không hợp lệ hoặc đã bị khóa');
       }
 
       const tx: Transaction = {
@@ -106,11 +144,12 @@ export function registerFinanceTools() {
         name: values.name,
         amount: values.amount,
         type: values.type,
-        categoryId: values.categoryId,
+        categoryId: values.categoryId || (values.type === 'income' ? 'salary' : 'other'),
         accountId: values.accountId,
+        toAccountId: values.toAccountId,
         date: values.date,
-        method: 'WebMCP',
-        note: values.note || '',
+        method: 'WebMCP Tool',
+        note: values.note || 'Tạo tự động qua WebMCP',
         status: 'completed'
       };
 
@@ -124,133 +163,276 @@ export function registerFinanceTools() {
           streakCount: streakResult.streakCount,
           lastCheckInDate: streakResult.lastCheckInDate
         }
-      }));
+      }), `WebMCP: Đã tạo giao dịch "${tx.name}"`);
 
-      return { id: tx.id, status: 'completed' };
+      return { id: tx.id, status: 'completed', transaction: tx };
     }
   });
 
-  // Tool 3: reconcile_account_balance
+  // Tool 3: smart_command_execute
   register({
-    name: 'reconcile_account_balance',
-    title: 'Reconcile account balance',
-    description: 'Adjust and reconcile an account balance to match actual bank/cash balance in 1-click.',
+    name: 'smart_command_execute',
+    title: 'Smart Multi-Intent Command Execution',
+    description: 'Parses and executes any natural Vietnamese financial intent: expense/income ("ăn trưa 45k"), investment ("mua 100 cổ FPT 13tr"), credit installments ("quẹt thẻ VCB 12tr góp 6T"), split bill ("ăn lẩu 1.2tr chia 4"), reconcile ("số dư ví 350k"), or business bundle.',
     inputSchema: {
       type: 'object',
       properties: {
-        accountId: { type: 'string', description: 'ID of the account to reconcile' },
-        actualBalance: { type: 'integer', minimum: 0, description: 'Actual balance in bank/wallet' },
-        note: { type: 'string', description: 'Optional explanation note' }
+        command: { type: 'string', description: 'Natural Vietnamese sentence describing the action' }
       },
-      required: ['accountId', 'actualBalance'],
+      required: ['command'],
       additionalProperties: false
     },
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute: async raw => {
-      const values = reconcileInput.parse(raw);
+      const { command } = smartCommandInput.parse(raw);
       const state = useFinance.getState();
       const data = state.data;
       if (!data) throw new Error('Dữ liệu chưa sẵn sàng');
 
-      const account = data.accounts.find(a => a.id === values.accountId);
-      if (!account) throw new Error('Không tìm thấy tài khoản');
-
-      const result = createReconciliationTransaction(
-        account,
-        values.actualBalance,
-        data.transactions,
-        data.categories
-      );
-
-      if (!result) {
-        return { reconciled: true, difference: 0, message: 'Số dư thực tế đã khớp hoàn hảo' };
-      }
-
-      if (values.note) {
-        result.transaction.note += ` (${values.note})`;
-      }
-
-      await state.update(d => ({
-        ...d,
-        transactions: [result.transaction, ...d.transactions]
-      }));
-
-      return {
-        reconciled: true,
-        difference: result.difference,
-        adjustmentTransactionId: result.transaction.id,
-        newBalance: values.actualBalance
-      };
-    }
-  });
-
-  // Tool 4: quick_parse_transaction
-  register({
-    name: 'quick_parse_transaction',
-    title: 'Quick Parse Natural Language Transaction',
-    description: 'Parse natural Vietnamese text (e.g. "ăn trưa 45k", "đổ xăng 70k ví momo") and create the transaction.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        text: { type: 'string', description: 'Natural Vietnamese sentence describing transaction' }
-      },
-      required: ['text'],
-      additionalProperties: false
-    },
-    annotations: { readOnlyHint: false, untrustedContentHint: false },
-    execute: async raw => {
-      const values = quickParseInput.parse(raw);
-      const state = useFinance.getState();
-      const data = state.data;
-      if (!data) throw new Error('Dữ liệu chưa sẵn sàng');
-
-      const parsed = parseVietnameseTransaction(
-        values.text,
-        data.categories,
-        data.accounts,
-        data.user.defaultAccountId
-      );
-
+      const parsed = parseVietnameseCommand(command, data.categories, data.accounts, data.user.defaultAccountId);
       if (!parsed) {
-        throw new Error('Không thể nhận diện số tiền từ câu nhập vào');
+        throw new Error('Không thể phân tích ý định từ câu lệnh');
       }
 
-      const tx: Transaction = {
+      const today = todayKey();
+      const streakResult = updateStreak(data.user, today);
+
+      // Execute based on intent
+      if (parsed.intent === 'reconcile' && parsed.reconcile) {
+        const { accountId, actualBalance } = parsed.reconcile;
+        const account = data.accounts.find(a => a.id === accountId);
+        if (!account) throw new Error('Không tìm thấy tài khoản');
+        const rec = createReconciliationTransaction(account, actualBalance, data.transactions, data.categories);
+        if (rec) {
+          await state.update(d => ({
+            ...d,
+            transactions: [rec.transaction, ...d.transactions]
+          }), `WebMCP: Cân bằng số dư "${account.name}"`);
+        }
+        return { intent: 'reconcile', account: account.name, newBalance: actualBalance };
+      }
+
+      if (parsed.intent === 'split_bill' && parsed.splitBill) {
+        const { name, totalAmount, personalShare, othersShare, accountId, categoryId } = parsed.splitBill;
+        const personalTx: Transaction = {
+          id: uid(),
+          name: `${name} (Phần cá nhân)`,
+          amount: personalShare,
+          type: 'expense',
+          categoryId,
+          accountId,
+          date: today,
+          method: 'WebMCP Split Bill',
+          note: `Tổng hóa đơn ${totalAmount}, chia ${parsed.splitBill.peopleCount} người`,
+          status: 'completed'
+        };
+        const loanTx: Transaction = {
+          id: uid(),
+          name: `Tạm ứng chia tiền: ${name}`,
+          amount: othersShare,
+          type: 'expense',
+          categoryId: 'other',
+          accountId,
+          date: today,
+          method: 'WebMCP Split Bill',
+          note: `Phần bạn bè: ${othersShare}`,
+          status: 'completed'
+        };
+        const newDebt: Debt = {
+          id: uid(),
+          name: `Khoản nợ chia tiền: ${name}`,
+          kind: 'lent',
+          principal: othersShare,
+          startDate: today,
+          dueDate: today,
+          payments: []
+        };
+        await state.update(d => ({
+          ...d,
+          transactions: [personalTx, loanTx, ...d.transactions],
+          debts: [newDebt, ...d.debts]
+        }), `WebMCP: Đã chia tiền "${name}"`);
+        return { intent: 'split_bill', personalShare, othersShare, debtId: newDebt.id };
+      }
+
+      if (parsed.intent === 'investment' && parsed.investment) {
+        const inv = parsed.investment;
+        const newAsset: InvestmentAsset = {
+          id: uid(),
+          symbol: inv.symbol,
+          name: inv.name,
+          assetClass: inv.assetClass,
+          quantity: inv.quantity,
+          totalCostBasis: inv.totalCostBasis,
+          currentUnitPrice: inv.currentUnitPrice,
+          accountId: inv.accountId,
+          updatedAt: today
+        };
+        const investTx: Transaction = {
+          id: uid(),
+          name: `Đầu tư: ${inv.quantity} ${inv.symbol}`,
+          amount: inv.totalCostBasis,
+          type: 'expense',
+          categoryId: 'invest',
+          accountId: inv.accountId,
+          date: today,
+          method: 'WebMCP Đầu tư',
+          note: `Mua ${inv.quantity} ${inv.symbol}`,
+          status: 'completed'
+        };
+        await state.update(d => {
+          const list = d.investments || [];
+          const idx = list.findIndex(a => a.symbol.toUpperCase() === inv.symbol.toUpperCase());
+          let nextInv: InvestmentAsset[];
+          if (idx >= 0) {
+            nextInv = list.map((a, i) =>
+              i === idx
+                ? { ...a, quantity: a.quantity + inv.quantity, totalCostBasis: a.totalCostBasis + inv.totalCostBasis, updatedAt: today }
+                : a
+            );
+          } else {
+            nextInv = [newAsset, ...list];
+          }
+          return {
+            ...d,
+            investments: nextInv,
+            transactions: [investTx, ...d.transactions]
+          };
+        }, `WebMCP: Đầu tư ${inv.quantity} ${inv.symbol}`);
+        return { intent: 'investment', symbol: inv.symbol, quantity: inv.quantity, cost: inv.totalCostBasis };
+      }
+
+      if (parsed.transaction) {
+        const t = parsed.transaction;
+        const newTx: Transaction = {
+          id: uid(),
+          name: t.name,
+          amount: t.amount,
+          type: t.type,
+          categoryId: t.categoryId,
+          accountId: t.accountId,
+          date: t.date,
+          method: 'WebMCP Smart Command',
+          note: parsed.raw,
+          status: 'completed'
+        };
+        await state.update(d => ({
+          ...d,
+          transactions: [newTx, ...d.transactions],
+          user: {
+            ...d.user,
+            streakCount: streakResult.streakCount,
+            lastCheckInDate: streakResult.lastCheckInDate
+          }
+        }), `WebMCP: Thêm ${newTx.name}`);
+        return { intent: 'transaction', transaction: newTx, explanation: parsed.explanation };
+      }
+
+      return { intent: parsed.intent, explanation: parsed.explanation };
+    }
+  });
+
+  // Tool 4: add_or_update_investment
+  register({
+    name: 'add_or_update_investment',
+    title: 'Add or Update Investment Asset',
+    description: 'Add a stock, gold, crypto, or savings asset to user portfolio with ticker/symbol, quantity, and cost basis.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: { type: 'string', description: 'Ticker symbol e.g. FPT, SJC, BTC' },
+        name: { type: 'string', description: 'Display name' },
+        assetClass: { type: 'string', enum: ['stock', 'gold', 'crypto', 'savings', 'real_estate'] },
+        quantity: { type: 'number', minimum: 0.000001 },
+        totalCostBasis: { type: 'integer', minimum: 1 },
+        currentUnitPrice: { type: 'integer' },
+        annualYieldRate: { type: 'number' }
+      },
+      required: ['symbol', 'assetClass', 'quantity', 'totalCostBasis'],
+      additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, untrustedContentHint: false },
+    execute: async raw => {
+      const values = investmentInput.parse(raw);
+      const state = useFinance.getState();
+      const data = state.data;
+      if (!data) throw new Error('Dữ liệu chưa sẵn sàng');
+
+      const today = todayKey();
+      const unitPrice =
+        values.currentUnitPrice ||
+        MARKET_PRICES[values.symbol.toUpperCase()] ||
+        Math.round(values.totalCostBasis / values.quantity);
+
+      const newAsset: InvestmentAsset = {
         id: uid(),
-        name: parsed.name,
-        amount: parsed.amount,
-        type: parsed.type,
-        categoryId: parsed.categoryId,
-        accountId: parsed.accountId,
-        date: parsed.date,
-        method: 'WebMCP NLP',
-        note: 'Tạo tự động qua WebMCP: ' + values.text,
-        status: 'completed'
+        symbol: values.symbol.toUpperCase(),
+        name: values.name || values.symbol.toUpperCase(),
+        assetClass: values.assetClass,
+        quantity: values.quantity,
+        totalCostBasis: values.totalCostBasis,
+        currentUnitPrice: unitPrice,
+        annualYieldRate: values.annualYieldRate,
+        updatedAt: today
       };
 
-      const streakResult = updateStreak(data.user, todayKey());
-
-      await state.update(d => ({
-        ...d,
-        transactions: [tx, ...d.transactions],
-        user: {
-          ...d.user,
-          streakCount: streakResult.streakCount,
-          lastCheckInDate: streakResult.lastCheckInDate
+      await state.update(d => {
+        const list = d.investments || [];
+        const idx = list.findIndex(a => a.symbol.toUpperCase() === values.symbol.toUpperCase());
+        let next: InvestmentAsset[];
+        if (idx >= 0) {
+          next = list.map((a, i) =>
+            i === idx
+              ? {
+                  ...a,
+                  quantity: a.quantity + values.quantity,
+                  totalCostBasis: a.totalCostBasis + values.totalCostBasis,
+                  currentUnitPrice: unitPrice,
+                  updatedAt: today
+                }
+              : a
+          );
+        } else {
+          next = [newAsset, ...list];
         }
-      }));
+        return { ...d, investments: next };
+      }, `WebMCP: Đã cập nhật tài sản đầu tư ${newAsset.symbol}`);
+
+      return { status: 'success', asset: newAsset };
+    }
+  });
+
+  // Tool 5: analyze_financial_risks
+  register({
+    name: 'analyze_financial_risks',
+    title: 'Analyze Financial Risks & Rebalance',
+    description: 'Scans the entire finance system for credit card due risks, liquidity shortages, overspent budgets, and returns smart rebalancing recommendations.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true, untrustedContentHint: false },
+    execute: async () => {
+      const data = useFinance.getState().data;
+      if (!data) throw new Error('Dữ liệu chưa sẵn sàng');
+
+      const alerts = analyzeFinancialRisks(data);
+      const trueSpendable = calculateTrueSpendableBalance(data);
 
       return {
-        id: tx.id,
-        name: tx.name,
-        amount: tx.amount,
-        type: tx.type,
-        categoryId: tx.categoryId,
-        accountId: tx.accountId,
-        explanation: parsed.explanation
+        healthStatus: trueSpendable.status,
+        burnRateDaysLeft: trueSpendable.burnRateDaysLeft,
+        burnRateExhaustionDate: trueSpendable.burnRateExhaustionDate,
+        risksCount: alerts.length,
+        alerts: alerts.map(a => ({
+          level: a.level,
+          title: a.title,
+          description: a.description,
+          actionType: a.actionType,
+          rebalanceData: a.rebalanceData
+        }))
       };
     }
   });
 
-  return () => controller.abort();
+  return () => {
+    controller.abort();
+  };
 }

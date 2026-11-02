@@ -6,12 +6,12 @@ import {
   Pencil,
   Trash2,
   History,
-  Scale
+  Scale,
+  Users
 } from 'lucide-react';
 import {
   Box,
   Button,
-  IconButton,
   Card,
   Typography,
   Chip,
@@ -19,7 +19,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Alert
+  Alert,
+  LinearProgress,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 
 import { useFinance } from '../../store';
@@ -28,6 +31,8 @@ import { Confirm, PageHead } from '../../components/ui';
 import { ReconcileDialog } from '../../components/ReconcileDialog';
 import { canAddAccount } from '../../lib/subscription';
 import { MuiTextField, MuiSelect, MuiCurrencyInput } from '../../components/mui/MuiInputs';
+import { BankLogoBadge } from '../../lib/brandBadges';
+import { ItemActionMenu } from '../../components/ItemActionMenu';
 import type { Account, Transaction } from '../../types';
 
 const kinds: Record<Account['type'], string> = {
@@ -35,14 +40,22 @@ const kinds: Record<Account['type'], string> = {
   cash: 'Tiền mặt',
   ewallet: 'Ví điện tử',
   savings: 'Tiết kiệm',
-  investment: 'Đầu tư'
+  investment: 'Đầu tư',
+  credit_card: 'Thẻ tín dụng / BNPL'
 };
 
 const blank = {
   name: '',
   type: 'bank' as Account['type'],
   openingBalance: '0',
-  color: '#10b981'
+  color: '#10b981',
+  creditLimit: '50000000',
+  statementDay: '20',
+  dueDay: '5',
+  interestRate: '28',
+  isShared: false,
+  sharedMembers: 'Bạn, Vợ/Chồng',
+  sharedGoalName: 'Quỹ chi tiêu gia đình'
 };
 
 export default function Accounts() {
@@ -75,7 +88,14 @@ export default function Accounts() {
             name: a.name,
             type: a.type,
             openingBalance: String(a.openingBalance),
-            color: a.color
+            color: a.color,
+            creditLimit: String(a.creditLimit || '50000000'),
+            statementDay: String(a.statementDay || '20'),
+            dueDay: String(a.dueDay || '5'),
+            interestRate: String(a.interestRate || '28'),
+            isShared: !!a.isShared,
+            sharedMembers: a.sharedMembers?.join(', ') || 'Bạn, Vợ/Chồng',
+            sharedGoalName: a.sharedGoalName || ''
           }
         : blank
     );
@@ -86,16 +106,35 @@ export default function Accounts() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const opening = Number(form.openingBalance);
-    if (!form.name.trim() || !Number.isInteger(opening) || opening < 0) {
+    if (!form.name.trim() || !Number.isInteger(opening)) {
       setError('Nhập tên và số dư đầu kỳ hợp lệ');
       return;
     }
+
+    const isCredit = form.type === 'credit_card';
 
     await update(
       d => ({
         ...d,
         accounts: edit
-          ? d.accounts.map(a => (a.id === edit.id ? { ...a, ...form, openingBalance: opening } : a))
+          ? d.accounts.map(a =>
+              a.id === edit.id
+                ? {
+                    ...a,
+                    ...form,
+                    openingBalance: opening,
+                    creditLimit: isCredit ? Number(form.creditLimit) : undefined,
+                    statementDay: isCredit ? Number(form.statementDay) : undefined,
+                    dueDay: isCredit ? Number(form.dueDay) : undefined,
+                    interestRate: isCredit ? Number(form.interestRate) : undefined,
+                    isShared: form.isShared,
+                    sharedMembers: form.isShared
+                      ? form.sharedMembers.split(',').map((s: string) => s.trim()).filter(Boolean)
+                      : undefined,
+                    sharedGoalName: form.isShared ? form.sharedGoalName.trim() : undefined
+                  }
+                : a
+            )
           : [
               ...d.accounts,
               {
@@ -105,7 +144,16 @@ export default function Accounts() {
                 openingBalance: opening,
                 color: form.color,
                 createdAt: todayKey(),
-                active: true
+                active: true,
+                creditLimit: isCredit ? Number(form.creditLimit) : undefined,
+                statementDay: isCredit ? Number(form.statementDay) : undefined,
+                dueDay: isCredit ? Number(form.dueDay) : undefined,
+                interestRate: isCredit ? Number(form.interestRate) : undefined,
+                isShared: form.isShared,
+                sharedMembers: form.isShared
+                  ? form.sharedMembers.split(',').map((s: string) => s.trim()).filter(Boolean)
+                  : undefined,
+                sharedGoalName: form.isShared ? form.sharedGoalName.trim() : undefined
               }
             ]
       }),
@@ -196,7 +244,7 @@ export default function Accounts() {
           <div className="card stat" key={a.id}>
             <div className="stat-top">
               <span className="stat-label">{a.name}</span>
-              <span className="stat-icon" style={{ background: a.color + '20', color: a.color }}>
+              <span className="stat-icon" style={{ background: 'transparent', color: a.color }}>
                 <Wallet />
               </span>
             </div>
@@ -217,28 +265,27 @@ export default function Accounts() {
               key={a.id}
               sx={{ borderRadius: 3, p: 2.5 }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: a.color + '20',
-                    color: a.color
-                  }}
-                >
-                  <Wallet size={20} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <BankLogoBadge accountName={a.name} accountType={a.type} size="large" />
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.75 }}>
+                  <Chip
+                    label={a.active ? 'Hoạt động' : 'Đã khóa'}
+                    size="small"
+                    color={a.active ? 'success' : 'default'}
+                    variant="outlined"
+                    sx={{ height: 22, fontSize: 10.5, fontWeight: 700 }}
+                  />
+                  {a.isShared && (
+                    <Chip
+                      icon={<Users size={12} color="#059669" />}
+                      label="Quỹ chung"
+                      size="small"
+                      color="success"
+                      variant="outlined"
+                      sx={{ height: 22, fontSize: 10, fontWeight: 700 }}
+                    />
+                  )}
                 </Box>
-                <Chip
-                  label={a.active ? 'Hoạt động' : 'Đã khóa'}
-                  size="small"
-                  color={a.active ? 'success' : 'default'}
-                  variant="outlined"
-                  sx={{ height: 22, fontSize: 11, fontWeight: 700 }}
-                />
               </Box>
 
               <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.25 }}>
@@ -248,48 +295,94 @@ export default function Accounts() {
                 {kinds[a.type]} · Từ {dateLabel(a.createdAt)}
               </Typography>
 
-              <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', mb: 2 }}>
-                {money(currentBal)}
-              </Typography>
+              {a.type === 'credit_card' ? (
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 650 }}>
+                      Dư nợ hiện tại:
+                    </Typography>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#ef4444' }}>
+                      {money(Math.abs(Math.min(0, currentBal)))}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', mb: 0.5 }}>
+                    <span>Khả dụng: {money(Math.max(0, (a.creditLimit || 0) + currentBal))}</span>
+                    <span>Hạn mức: {money(a.creditLimit || 0)}</span>
+                  </Box>
+                  {(() => {
+                    const used = Math.abs(Math.min(0, currentBal));
+                    const limit = a.creditLimit || 1;
+                    const pct = Math.min(100, Math.round((used / limit) * 100));
+                    return (
+                      <Box sx={{ mt: 0.5 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, mb: 0.25 }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Tỷ lệ sử dụng tín dụng:</span>
+                          <strong style={{ color: pct > 70 ? '#ef4444' : pct > 40 ? '#f59e0b' : '#10b981' }}>{pct}%</strong>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={pct}
+                          sx={{
+                            height: 6,
+                            borderRadius: 3,
+                            bgcolor: 'action.hover',
+                            '& .MuiLinearProgress-bar': {
+                              bgcolor: pct > 70 ? '#ef4444' : pct > 40 ? '#f59e0b' : '#10b981',
+                              borderRadius: 3
+                            }
+                          }}
+                        />
+                      </Box>
+                    );
+                  })()}
+                  <Box sx={{ display: 'flex', gap: 1, mt: 1.25, flexWrap: 'wrap' }}>
+                    <Chip label={`Sao kê: Ngày ${a.statementDay || 20}`} size="small" sx={{ fontSize: 10.5, height: 20 }} />
+                    <Chip label={`Hạn nộp: Ngày ${a.dueDay || 5}`} size="small" color="error" variant="outlined" sx={{ fontSize: 10.5, height: 20, fontWeight: 700 }} />
+                    {a.interestRate && (
+                      <Chip label={`Lãi phạt: ${a.interestRate}%/năm`} size="small" sx={{ fontSize: 10.5, height: 20 }} />
+                    )}
+                  </Box>
+                </Box>
+              ) : (
+                <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.primary', mb: 2 }}>
+                  {money(currentBal)}
+                </Typography>
+              )}
 
-              {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                {/* 1-Click Balance Reconciliation Button */}
+              {/* Action Buttons: 1 Nút chính + Nút More gọn gàng */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto', pt: 1.5, borderTop: '1px solid var(--border-subtle)' }}>
                 <Button
                   size="small"
                   variant="outlined"
                   color="primary"
                   startIcon={<Scale size={14} />}
                   onClick={() => setReconcileAccount(a)}
-                  sx={{ fontWeight: 700, fontSize: 11 }}
+                  sx={{ fontWeight: 600, fontSize: 11, borderRadius: 1.5 }}
                 >
                   Cân bằng số dư
                 </Button>
 
-                <Button
-                  size="small"
-                  variant="text"
-                  color="inherit"
-                  startIcon={<History size={14} />}
-                  onClick={() => setHistory(a)}
-                  sx={{ fontSize: 11 }}
-                >
-                  Lịch sử
-                </Button>
-
-                <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
-                  <IconButton size="small" onClick={() => start(a)} aria-label="Sửa tài khoản">
-                    <Pencil size={14} />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => setDeleting(a)}
-                    aria-label="Xóa tài khoản"
-                  >
-                    <Trash2 size={14} />
-                  </IconButton>
-                </Box>
+                <ItemActionMenu
+                  ariaLabel={`Tùy chọn tài khoản ${a.name}`}
+                  items={[
+                    {
+                      label: 'Lịch sử giao dịch',
+                      icon: <History size={15} />,
+                      onClick: () => setHistory(a)
+                    },
+                    {
+                      label: 'Chỉnh sửa tài khoản',
+                      icon: <Pencil size={15} />,
+                      onClick: () => start(a)
+                    },
+                    {
+                      label: 'Xóa tài khoản',
+                      icon: <Trash2 size={15} />,
+                      color: 'error',
+                      onClick: () => setDeleting(a)
+                    }
+                  ]}
+                />
               </Box>
             </Card>
           );
@@ -312,7 +405,7 @@ export default function Accounts() {
           {error && <Alert severity="error">{error}</Alert>}
           <MuiTextField
             label="Tên tài khoản"
-            placeholder="VD: Vietcombank, Ví MoMo, Tiền mặt"
+            placeholder="VD: Vietcombank, Thẻ Visa VCB, Ví MoMo, Tiền mặt"
             value={form.name}
             onChange={e => setForm({ ...form, name: e.target.value })}
             required
@@ -325,30 +418,108 @@ export default function Accounts() {
             options={Object.entries(kinds).map(([k, v]) => ({ value: k, label: v }))}
           />
           <MuiCurrencyInput
-            label="Số dư đầu kỳ (₫)"
+            label={form.type === 'credit_card' ? 'Dư nợ đầu kỳ (0 nếu mới)' : 'Số dư đầu kỳ (₫)'}
             value={form.openingBalance}
             onChange={val => setForm({ ...form, openingBalance: val })}
           />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+
+          {form.type === 'credit_card' && (
+            <>
+              <MuiCurrencyInput
+                label="Hạn mức tín dụng (₫)"
+                value={form.creditLimit}
+                onChange={val => setForm({ ...form, creditLimit: val })}
+              />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                <MuiTextField
+                  label="Ngày sao kê (1-31)"
+                  type="number"
+                  value={form.statementDay}
+                  onChange={e => setForm({ ...form, statementDay: e.target.value })}
+                  placeholder="20"
+                />
+                <MuiTextField
+                  label="Ngày đến hạn (1-31)"
+                  type="number"
+                  value={form.dueDay}
+                  onChange={e => setForm({ ...form, dueDay: e.target.value })}
+                  placeholder="5"
+                />
+              </Box>
+              <MuiTextField
+                label="Lãi suất quá hạn (%/năm)"
+                type="number"
+                value={form.interestRate}
+                onChange={e => setForm({ ...form, interestRate: e.target.value })}
+                placeholder="28"
+              />
+            </>
+          )}
+
+          <Box sx={{ display: 'grid', gap: 1 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 13 }}>
-              Màu đại diện:
+              Màu sắc nhận diện:
             </Typography>
-            <Box
-              component="input"
-              type="color"
-              value={form.color}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setForm({ ...form, color: e.target.value })
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {['#10b981', '#3b82f6', '#0284c7', '#ec4899', '#f59e0b', '#ef4444', '#06b6d4', '#64748b'].map(c => (
+                <Box
+                  key={c}
+                  onClick={() => setForm({ ...form, color: c })}
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    bgcolor: c,
+                    cursor: 'pointer',
+                    border: form.color === c ? '3px solid #fff' : '2px solid transparent',
+                    boxShadow: form.color === c ? '0 0 0 2px ' + c : 'none',
+                    transition: 'transform 0.1s',
+                    '&:hover': { transform: 'scale(1.15)' }
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
+
+          {/* Shared Wallet Section */}
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'action.hover', border: '1px solid var(--border-subtle)' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={form.isShared}
+                  onChange={e => setForm({ ...form, isShared: e.target.checked })}
+                  color="primary"
+                />
               }
-              sx={{
-                width: 44,
-                height: 36,
-                border: 'none',
-                borderRadius: 2,
-                cursor: 'pointer',
-                p: 0
-              }}
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <Users size={16} color="#059669" />
+                    <span>Ví dùng chung / Quỹ nhóm (Shared Wallet)</span>
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Dành cho quỹ gia đình, nhóm bạn đi du lịch, chi tiêu chung
+                  </Typography>
+                </Box>
+              }
             />
+
+            {form.isShared && (
+              <Box sx={{ mt: 1.5, display: 'grid', gap: 1.5 }}>
+                <MuiTextField
+                  label="Tên / Mục tiêu quỹ chung"
+                  placeholder="Ví dụ: Quỹ gia đình, Quỹ du lịch Phú Quốc"
+                  value={form.sharedGoalName}
+                  onChange={e => setForm({ ...form, sharedGoalName: e.target.value })}
+                />
+                <MuiTextField
+                  label="Thành viên tham gia (phân cách bằng dấu phẩy)"
+                  placeholder="Ví dụ: Bạn, Vợ/Chồng, Nam, Hùng"
+                  value={form.sharedMembers}
+                  onChange={e => setForm({ ...form, sharedMembers: e.target.value })}
+                />
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

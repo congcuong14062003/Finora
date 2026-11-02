@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, HandCoins, Pencil, Trash2, History } from 'lucide-react';
+import { Plus, Pencil, Trash2, History, Bell, Send, Copy, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import {
   Box,
   Button,
-  IconButton,
   Card,
   Typography,
   Chip,
@@ -17,23 +16,28 @@ import {
 import { useFinance } from '../../store';
 import { balance, dateLabel, debtRemaining, money, uid, todayKey } from '../../lib/finance';
 import { Confirm, PageHead, Progress } from '../../components/ui';
+import { ItemActionMenu } from '../../components/ItemActionMenu';
+import { DebtLogoBadge } from '../../lib/brandBadges';
 import {
   MuiTextField,
   MuiSelect,
   MuiCurrencyInput,
   MuiDatePicker
 } from '../../components/mui/MuiInputs';
-import type { Debt, Transaction } from '../../types';
+import type { Debt, DebtPayment, Transaction } from '../../types';
 
 export default function Debts() {
   const data = useFinance(s => s.data)!;
   const update = useFinance(s => s.update);
+  const notify = useFinance(s => s.notify);
 
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Debt | null>(null);
   const [deleting, setDeleting] = useState<Debt | null>(null);
   const [pay, setPay] = useState<Debt | null>(null);
   const [history, setHistory] = useState<Debt | null>(null);
+  const [reminderDebt, setReminderDebt] = useState<Debt | null>(null);
+  const [copiedReminder, setCopiedReminder] = useState(false);
   const [amount, setAmount] = useState('');
   const [account, setAccount] = useState(data.accounts[0]?.id || '');
   const [error, setError] = useState('');
@@ -133,12 +137,18 @@ export default function Debts() {
     .filter(d => d.kind === 'lent')
     .reduce((n, d) => n + debtRemaining(d), 0);
 
+  const dueDebts = data.debts.filter(
+    d =>
+      debtRemaining(d) > 0 &&
+      d.dueDate <= new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
+  );
+
   return (
     <>
       <PageHead
-        eyebrow="CÁC KHOẢN CẦN THEO DÕI"
-        title="Khoản nợ"
-        subtitle="Ghi nhận từng lần trả hoặc thu hồi nợ, không tự tính lãi phát sinh."
+        eyebrow="SỔ NỢ & CHO VAY"
+        title="Quản lý Vay & Nợ"
+        subtitle="Ghi nhớ ai đang nợ bạn, bạn đang nợ ai, kèm lịch nhắc nhở đến hạn tự động."
         actions={
           <Button
             variant="contained"
@@ -150,6 +160,48 @@ export default function Debts() {
           </Button>
         }
       />
+
+      {/* Due Date Radar Banner */}
+      {dueDebts.length > 0 && (
+        <Card
+          variant="outlined"
+          sx={{
+            mb: 2.5,
+            p: 2,
+            borderRadius: 3,
+            bgcolor: 'action.hover',
+            border: '1.5px solid #d97706'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Bell size={18} color="#d97706" />
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#d97706' }}>
+              Lịch nhắc nợ đến hạn ({dueDebts.length} khoản cần lưu ý)
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {dueDebts.map(d => {
+              const rem = debtRemaining(d);
+              const isOverdue = d.dueDate < todayKey();
+              return (
+                <Chip
+                  key={d.id}
+                  icon={isOverdue ? <AlertTriangle size={12} color="#dc2626" /> : <Bell size={12} color="#d97706" />}
+                  label={`${d.kind === 'owed' ? 'Cần trả' : 'Cần thu'} ${d.name}: ${money(rem)} (${isOverdue ? 'Quá hạn' : `Hạn ${dateLabel(d.dueDate)}`})`}
+                  size="small"
+                  onClick={() => (d.kind === 'lent' ? setReminderDebt(d) : setPay(d))}
+                  sx={{
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    bgcolor: isOverdue ? '#fef0ef' : '#fff3e1',
+                    color: isOverdue ? '#dc2626' : '#d97706'
+                  }}
+                />
+              );
+            })}
+          </Box>
+        </Card>
+      )}
 
       <div className="grid-stats" style={{ marginBottom: 20 }}>
         <div className="card stat">
@@ -185,21 +237,8 @@ export default function Debts() {
               key={d.id}
               sx={{ borderRadius: 3, p: 2.5 }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: d.kind === 'owed' ? '#fef0ef' : '#e9f9f2',
-                    color: d.kind === 'owed' ? '#dc2626' : '#059669'
-                  }}
-                >
-                  <HandCoins size={18} />
-                </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <DebtLogoBadge debtName={d.name} lenderName={d.name} size="large" />
                 <Chip
                   label={
                     remaining === 0
@@ -238,7 +277,8 @@ export default function Debts() {
                 color={d.kind === 'owed' ? '#f59e0b' : '#10b981'}
               />
 
-              <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Action Buttons: 1 Nút chính + Nút More */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, pt: 1.5, borderTop: '1px solid var(--border-subtle)' }}>
                 <Button
                   size="small"
                   variant="contained"
@@ -249,31 +289,40 @@ export default function Debts() {
                     setPay(d);
                     setError('');
                   }}
+                  sx={{ fontWeight: 600, fontSize: 11.5, borderRadius: 1.5 }}
                 >
                   {d.kind === 'owed' ? 'Ghi trả nợ' : 'Ghi thu hồi'}
                 </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<History size={14} />}
-                  onClick={() => setHistory(d)}
-                >
-                  Lịch sử
-                </Button>
-                <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
-                  <IconButton size="small" onClick={() => start(d)} aria-label="Sửa khoản nợ">
-                    <Pencil size={14} />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => setDeleting(d)}
-                    aria-label="Xóa khoản nợ"
-                  >
-                    <Trash2 size={14} />
-                  </IconButton>
-                </Box>
+
+                <ItemActionMenu
+                  ariaLabel={`Tùy chọn khoản nợ ${d.name}`}
+                  items={[
+                    ...(d.kind === 'lent' && remaining > 0 ? [{
+                      label: 'Soạn tin nhắc nợ lịch sự',
+                      icon: <Send size={15} />,
+                      onClick: () => {
+                        setReminderDebt(d);
+                        setCopiedReminder(false);
+                      }
+                    }] : []),
+                    {
+                      label: 'Lịch sử thanh toán',
+                      icon: <History size={15} />,
+                      onClick: () => setHistory(d)
+                    },
+                    {
+                      label: 'Chỉnh sửa khoản nợ',
+                      icon: <Pencil size={15} />,
+                      onClick: () => start(d)
+                    },
+                    {
+                      label: 'Xóa khoản nợ',
+                      icon: <Trash2 size={15} />,
+                      color: 'error' as const,
+                      onClick: () => setDeleting(d)
+                    }
+                  ]}
+                />
               </Box>
             </Card>
           );
@@ -380,7 +429,7 @@ export default function Debts() {
         </DialogTitle>
         <DialogContent dividers>
           <div className="mini-list">
-            {history?.payments.map(p => (
+            {history?.payments.map((p: DebtPayment) => (
               <div className="mini-row" key={p.id}>
                 <span>{dateLabel(p.date)}</span>
                 <strong style={{ color: '#059669' }}>{money(p.amount)}</strong>
@@ -412,6 +461,64 @@ export default function Debts() {
         }}
         message={`Xóa theo dõi khoản “${deleting?.name || ''}”? Lịch sử các giao dịch thanh toán đã ghi trước đây sẽ được giữ lại.`}
       />
+
+      {/* Debt Reminder Message Modal */}
+      <Dialog
+        open={!!reminderDebt}
+        onClose={() => setReminderDebt(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Send size={18} color="#059669" />
+          <span>Tin nhắn nhắc nợ lịch sự · {reminderDebt?.name || ''}</span>
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: 'grid', gap: 2 }}>
+          {reminderDebt && (() => {
+            const rem = debtRemaining(reminderDebt);
+            const defaultAcc = data.accounts.find(a => a.id === data.user.defaultAccountId) || data.accounts[0];
+            const msg = `Chào ${reminderDebt.name}, Tích Lộc gửi lời nhắn giúp bạn khoản tiền ${money(rem)} mượn ngày ${dateLabel(reminderDebt.startDate)} đã đến hạn thanh toán (${dateLabel(reminderDebt.dueDate)}). Khi nào tiện nhờ bạn chuyển khoản giúp mình qua tài khoản [${defaultAcc?.name || 'Ngân hàng'}] nhé. Cảm ơn bạn nhiều!`;
+
+            return (
+              <>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Tin nhắn được định dạng lịch sự, ngắn gọn và tế nhị để bạn gửi qua Zalo, Messenger hoặc SMS:
+                </Typography>
+
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2.5,
+                    bgcolor: 'action.hover',
+                    border: '1px solid var(--border-subtle)',
+                    fontFamily: 'inherit',
+                    fontSize: 13,
+                    lineHeight: 1.6
+                  }}
+                >
+                  {msg}
+                </Box>
+
+                <Button
+                  variant={copiedReminder ? 'contained' : 'outlined'}
+                  color={copiedReminder ? 'success' : 'primary'}
+                  startIcon={copiedReminder ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                  onClick={() => {
+                    navigator.clipboard.writeText(msg);
+                    setCopiedReminder(true);
+                    notify?.('Đã sao chép tin nhắn nhắc nợ vào bộ nhớ tạm!');
+                  }}
+                >
+                  {copiedReminder ? 'Đã sao chép vào bộ nhớ tạm' : 'Sao chép tin nhắn'}
+                </Button>
+              </>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setReminderDebt(null)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

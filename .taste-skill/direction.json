@@ -1,11 +1,11 @@
 {
  "version": 1,
  "kind": "app",
- "at": "2026-11-02T09:49:49.951Z",
- "seed": 560425002,
+ "at": "2026-11-02T13:18:45.832Z",
+ "seed": 755346752,
  "input": {
   "kind": "finance",
-  "brief": "Finora personal finance app",
+  "brief": "Finora personal and business financial cockpit, offline-first with cloud sync, bank card installment helper, distinctive account/category badges, subtle surface contrast without harsh borders",
   "theme": null,
   "screens": [
    "overview",
@@ -13,7 +13,7 @@
    "settings"
   ],
   "keep": [],
-  "style": "achromatic-ledger"
+  "style": null
  },
  "style": {
   "id": "achromatic-ledger",
@@ -118,38 +118,44 @@
   "notes": "The studied screens of this kind used 11-12px card radii, which §9.4 counts among the rare middle values; the library sets the tight pair (8 and 6) so the style lands on the bimodal rule. After testing, the chart hue moved from an unused third series colour onto the main data element: a screen whose only hue was a delta read as a kit."
  },
  "shell": {
-  "id": "no-sidebar",
-  "name": "No sidebar",
-  "basis": "3 of 23 screens",
+  "id": "open-plane",
+  "name": "Open plane",
+  "basis": "5 of 23 screens",
   "suits": [
-   "report",
+   "finance",
+   "wallet",
+   "workspace",
    "creator",
-   "community"
+   "analytics"
   ],
   "numbers": {
-   "topBar": "46-48px on the page ground, no border",
-   "column": "centred, 1088-1208px",
-   "gutters": "152-212px at a 1512px window",
-   "logo": "on the column's left edge",
-   "links": "14-15px semibold grey"
+   "sidebarWidth": "230-256 (230, 240, 256 in the study; 280 and 292 with a built-in icon rail)",
+   "separation": "none, or one 1px hairline; the sidebar sits on the page ground or within 1-2% of it",
+   "navPitch": 34,
+   "navRowHeight": 32,
+   "navIcon": "16px outline, about 1.5px stroke",
+   "navLabel": "14px, 400, grey or ink",
+   "activeItem": "neutral grey pill, radius 6-12, inset 8-12px from the sidebar edges (#e9e9e9-#ededed)",
+   "topBar": "none",
+   "canvas": "fluid with a 24-64px gutter, or a centred 1100px column"
   },
-  "blueprint": "A 46-48px top bar on the page ground over a centred 1088-1208px column; the logo sits exactly on the column's left edge and the bar's right cluster ends near its right edge, so header and content share one column. Three to five text links, a 36px search, the account. Use it for generated reports, viewers and products with few destinations; with a sticky bar on the same ground, give it a 1px rule when content scrolls under it (the studied bar without one sliced content off).",
-  "phone": "The bar keeps the logo, a search icon and a menu button; the links move into the menu sheet. The column becomes the full width with 16px margins."
+  "blueprint": "The labelled sidebar sits on the page ground with nothing or one hairline between it and the canvas; there is no top bar, and the page header and cards sit straight on the ground about 32-36px from the top. Workspace or account switcher at the top of the sidebar, primary nav on a 34px pitch, groups under 12-13px sentence-case grey labels with 22-56px of air above, utilities and the user row pushed to the bottom. Cards are white on the off-white ground (or the sidebar is white with a 1px border on a #f9fafb canvas). The canvas is fluid with one gutter value, or a centred column for personal homes.",
+  "phone": "The sidebar folds into a 48px top bar holding the screen's name, a menu button that opens a full-screen sheet with the nav and the switcher, and at most one action. Content takes the full width with 16px margins."
  },
  "screens": [
   {
    "name": "overview",
    "pattern": {
-    "id": "kpi-tabs-chart",
-    "name": "KPIs as the chart's tabs",
+    "id": "finance-home-pinned-rail",
+    "name": "Finance home with a pinned accounts column",
     "screen": "overview",
     "kinds": [
      "finance",
-     "commerce"
+     "wallet"
     ],
-    "basis": "a seller home",
-    "blueprint": "One card per subject, 8-16px apart: the main chart card runs full width, and any card holding a table of five columns or fewer, or a short list, pairs with its neighbour in two columns, the page header indented by the card padding so the title, the card titles, the numbers and the plot share one left edge. Balances that do not change during the day go first, in one container split by 1px dividers into equal columns; a zero balance is grey and its caption becomes the next step. In the main card, 2-4 KPIs sit in a row and act as the chart's series tabs: the selected one carries a 2px rule and an ink label, the others keep a grey label and their value in ink at a lighter weight (a grey value reads as disabled); when the tabs are the per-entity breakdown the brief asks for (takings by shop), nothing is greyed and the rule alone marks the selection. Choosing one swaps the series. Under them, one line chart as wide as the card's content (about 1136x220 in the study): 3-4 solid 1px gridlines, 4-6 round y ticks at 12px, a 2-3px line in ink with straight segments and no fill, an 8px hover dot with a 1px dashed guide and the line after the cursor in pale grey. Close with a 2-3 row comparison table on a 36px pitch, value and change columns right-aligned under a 14px grey header such as 'vs prior Monday'.",
-    "phone": "KPI tabs become a 2-up grid above the chart, with the selected cell marked by a fill (never an underline floating inside the grid) or a row of tabs that scrolls sideways; the chart is full width, 160-200px tall, with 4 x labels; the comparison table keeps its two right-aligned columns."
+    "basis": "a personal finance home",
+    "blueprint": "No page header and no KPI strip: cards start 36px from the top and each headline sum sits in the card that explains it. On the left, a 306px accounts card pinned at the viewport height minus the 36px margins opens with net worth (16/600 label left, value right) and holds the account tree with no dividers: groups 16px ink, categories 14px ink, leaves 14px grey indented 8px, values right-aligned, a 30px pitch and about 45px between groups; an empty group is a bordered box with an '+ Add account' link instead of $0.00. On the right, a 2-column grid with 24px gaps of cards that answer this month's questions, each with its own period caption: the plan (spanning both columns; a ring with an empty hole, a dot legend, the available figure beside it with a per-day line), recent spending as 61px two-line rows (payee over category, amount over date, right-aligned) and upcoming bills. Income is green with a plus sign; spending stays in ink.",
+    "phone": "Net worth becomes the first card; the account tree collapses to its groups with totals; the month cards stack."
    }
   },
   {

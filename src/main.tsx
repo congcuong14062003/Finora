@@ -17,10 +17,12 @@ import Debts from './features/debts/Debts';
 import Reports from './features/reports/Reports';
 import Recurring from './features/recurring/Recurring';
 import Settings from './features/settings/Settings';
+import Assets from './features/assets/Assets';
 import Auth from './features/auth/Auth';
 import { useFinance } from './store';
 import { registerFinanceTools } from './lib/webmcp';
 import { getFinoraTheme } from './theme/muiTheme';
+import { fetchVietQRBanks } from './lib/bankService';
 import './styles.css';
 
 function Loading() {
@@ -57,8 +59,17 @@ function App() {
   }, [load]);
 
   useEffect(() => {
+    void fetchVietQRBanks();
     return registerFinanceTools();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(theme);
+    document.body.classList.remove('light', 'dark');
+    document.body.classList.add(theme);
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
 
   const muiTheme = useMemo(() => getFinoraTheme(theme), [theme]);
 
@@ -85,6 +96,7 @@ function App() {
               <Route index element={<Dashboard />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="accounts" element={<Accounts />} />
+              <Route path="assets" element={<Assets />} />
               <Route path="categories" element={<Categories />} />
               <Route path="budgets" element={<Budgets />} />
               <Route path="savings" element={<Savings />} />

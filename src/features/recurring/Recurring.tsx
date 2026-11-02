@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, CalendarClock, Pencil, Trash2, Play, Sparkles } from 'lucide-react';
+import { Plus, CalendarClock, Pencil, Trash2, Play, Sparkles, Bell } from 'lucide-react';
 import {
   Box,
   Button,
@@ -127,12 +127,12 @@ export default function Recurring() {
       transactions: [tx, ...d.transactions],
       recurring: d.recurring.map(x => (x.id === r.id ? { ...x, nextDate: nextDate(x) } : x))
     }));
-    notify(`✅ Đã ghi nhận kỳ thanh toán cho "${r.name}"`);
+    notify(`Đã ghi nhận kỳ thanh toán cho "${r.name}"`);
   };
 
   const toggleAutoExecute = (r: RecurringTransaction) => {
     if (!canAutoExecuteRecurring(data)) {
-      openPricing('Tự động ghi nhận định kỳ (Auto-Execute) là tính năng của gói Finora Pro 👑');
+      openPricing('Tự động ghi nhận định kỳ (Auto-Execute) là tính năng của gói Tích Lộc Pro');
       return;
     }
     update(d => ({
@@ -143,17 +143,24 @@ export default function Recurring() {
     }));
     notify(
       !r.autoExecute
-        ? `🤖 Đã bật tự động chạy cho "${r.name}"`
+        ? `Đã bật tự động chạy cho "${r.name}"`
         : `Đã tắt tự động chạy cho "${r.name}"`
     );
   };
+
+  const upcomingBills = data.recurring.filter(
+    r =>
+      r.active &&
+      r.type === 'expense' &&
+      r.nextDate <= new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
+  );
 
   return (
     <>
       <PageHead
         eyebrow="LỊCH THANH TOÁN"
         title="Giao dịch định kỳ"
-        subtitle="Lên lịch thanh toán lặp lại; Finora Pro hỗ trợ tự động ghi nhận ngầm không cần bấm tay."
+        subtitle="Lên lịch thanh toán lặp lại; Tích Lộc Pro hỗ trợ tự động ghi nhận ngầm không cần bấm tay."
         actions={
           <Button
             variant="contained"
@@ -165,6 +172,47 @@ export default function Recurring() {
           </Button>
         }
       />
+
+      {/* Upcoming Bills Radar Banner */}
+      {upcomingBills.length > 0 && (
+        <Card
+          variant="outlined"
+          sx={{
+            mb: 2.5,
+            p: 2,
+            borderRadius: 3,
+            bgcolor: 'action.hover',
+            border: '1.5px solid #059669'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Bell size={18} color="#059669" />
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#059669' }}>
+              Nhắc nhở hóa đơn cố định sắp đến hạn ({upcomingBills.length} khoản trong tuần này)
+            </Typography>
+          </Box>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
+            Báo trước các khoản tiền nhà, cước internet, Netflix, bảo hiểm để chủ động số dư:
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {upcomingBills.map(b => (
+              <Chip
+                key={b.id}
+                icon={<CalendarClock size={13} color="#059669" />}
+                label={`${b.name}: ${money(b.amount)} · Hạn ${dateLabel(b.nextDate)}`}
+                size="small"
+                onClick={() => generate(b)}
+                sx={{
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  bgcolor: '#e9f9f2',
+                  color: '#059669'
+                }}
+              />
+            ))}
+          </Box>
+        </Card>
+      )}
 
       <div className="tiles">
         {[...data.recurring]
@@ -363,7 +411,7 @@ export default function Recurring() {
             label={
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Tự động ghi nhận khi đến hạn (Auto-Execute 👑)
+                  Tự động ghi nhận khi đến hạn (Auto-Execute Pro)
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   Hệ thống tự quét và sinh giao dịch khi khởi chạy

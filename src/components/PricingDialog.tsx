@@ -49,10 +49,10 @@ export function PricingDialog({
   const [processing, setProcessing] = useState(false);
 
   const userId = data?.user.id || 'demo';
-  const qrTransferContent = `FINORA PRO ${userId.toUpperCase()}`;
-  const qrUrl = `https://api.vietqr.io/image/970422-99998888FINORA-compact2.jpg?amount=${selectedPlan.price}&addInfo=${encodeURIComponent(
+  const qrTransferContent = `TICHLOC PRO ${userId.toUpperCase()}`;
+  const qrUrl = `https://api.vietqr.io/image/970422-99998888TICHLOC-compact2.jpg?amount=${selectedPlan.price}&addInfo=${encodeURIComponent(
     qrTransferContent
-  )}&accountName=FINORA%20PREMIUM`;
+  )}&accountName=TICHLOC%20PREMIUM`;
 
   const handleActivatePro = async () => {
     setProcessing(true);
@@ -70,18 +70,20 @@ export function PricingDialog({
       }
     }));
     setProcessing(false);
-    notify(`🎉 Chúc mừng bạn đã nâng cấp thành công gói ${selectedPlan.name}!`);
+    notify(`Chúc mừng bạn đã nâng cấp thành công gói ${selectedPlan.name}!`);
     setStep('compare');
     onClose();
   };
 
   const featureComparisons = [
-    { name: 'Số lượng Tài khoản (/accounts)', free: 'Tối đa 2', pro: 'Không giới hạn ⚡' },
-    { name: 'Ngân sách & Mục tiêu', free: '3 ngân sách, 1 mục tiêu', pro: 'Không giới hạn 🎯' },
-    { name: 'Mẫu nhập 1-Chạm (Quick Chips)', free: 'Tối đa 3 mẫu', pro: 'Không giới hạn ☕' },
-    { name: 'Nhập nhanh AI / NLP & WebMCP', free: '5 lần / ngày', pro: 'Không giới hạn + Giọng nói 🎙️' },
-    { name: 'Báo cáo chuyên sâu (/reports)', free: 'Chỉ xem tháng hiện tại', pro: 'Toàn thời gian + Xuất CSV 📊' },
-    { name: 'Tự động chạy định kỳ (Auto-Execute)', free: 'Thủ công bấm tay', pro: 'Tự động ngầm mỗi ngày 🤖' },
+    { name: 'Số lượng Tài khoản (/accounts)', free: 'Tối đa 2', pro: 'Không giới hạn + Thẻ tín dụng' },
+    { name: 'Danh mục Đầu tư theo Mã & PnL', free: 'Tối đa 2 mã', pro: 'Chứng khoán, Vàng, Coin không giới hạn' },
+    { name: 'AI Command Bar (5 Intents) & WebMCP', free: '5 lần / ngày', pro: 'Không giới hạn + Lệnh tự nhiên' },
+    { name: 'Cảnh báo Rủi ro & Bù ngân sách 1-Click', free: 'Cơ bản', pro: 'Đa tầng (Critical / Warning) + Rebalancer' },
+    { name: 'Chia tiền nhóm & Trả góp thẻ', free: 'Thủ công', pro: 'Tự động tính & đẩy vào Sổ nợ' },
+    { name: 'Thu nhập Thụ động & Tự do Tài chính', free: 'Không hỗ trợ', pro: 'Thước đo Tự do & Runway tháng' },
+    { name: 'Mẫu nhập 1-Chạm & Gói Kinh doanh', free: 'Tối đa 3 mẫu', pro: 'Không giới hạn + Trích giá vốn' },
+    { name: 'Tự động chạy định kỳ (Auto-Execute)', free: 'Thủ công bấm tay', pro: 'Tự động ngầm mỗi ngày' },
   ];
 
   return (
@@ -112,25 +114,24 @@ export function PricingDialog({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
             sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2.5,
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              width: 38,
+              height: 38,
+              borderRadius: 2,
+              bgcolor: 'warning.main',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)'
+              justifyContent: 'center'
             }}
           >
-            <Crown size={22} />
+            <Crown size={20} />
           </Box>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
-              Nâng cấp Finora Pro 👑
+            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              Nâng cấp Tích Lộc Pro
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Mở khóa toàn bộ sức mạnh tài chính và tự động hóa không giới hạn
+              Mở khóa toàn bộ sức mạnh tài chính cá nhân và tự động hóa không giới hạn
             </Typography>
           </Box>
         </Box>
@@ -220,16 +221,16 @@ export function PricingDialog({
             </Box>
 
             {/* Feature Table */}
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Sparkles size={16} color="#059669" /> So sánh đặc quyền gói Free vs Pro
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Sparkles size={16} color="#20705B" /> So sánh đặc quyền gói Free vs Pro
             </Typography>
             <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
               <Table size="small">
                 <TableHead sx={{ bgcolor: 'action.hover' }}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Tính năng / Giới hạn</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: '28%' }}>Gói Free</TableCell>
-                    <TableCell sx={{ fontWeight: 700, width: '35%', color: 'primary.main' }}>Finora Pro 👑</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Tính năng / Giới hạn</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: '28%' }}>Gói Free</TableCell>
+                    <TableCell sx={{ fontWeight: 600, width: '35%', color: 'primary.main' }}>Tích Lộc Pro</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -238,13 +239,13 @@ export function PricingDialog({
                       <TableCell sx={{ fontSize: 13, fontWeight: 500 }}>{row.name}</TableCell>
                       <TableCell sx={{ fontSize: 12, color: 'text.secondary' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <XCircle size={14} color="#94a3b8" />
+                          <XCircle size={14} color="#A4AEA8" />
                           <span>{row.free}</span>
                         </Box>
                       </TableCell>
                       <TableCell sx={{ fontSize: 13, fontWeight: 600, color: 'primary.main' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          <CheckCircle2 size={15} color="#10b981" />
+                          <CheckCircle2 size={15} color="#15966B" />
                           <span>{row.pro}</span>
                         </Box>
                       </TableCell>
@@ -312,28 +313,28 @@ export function PricingDialog({
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, bgcolor: 'action.hover', mb: 2 }}>
                   <Box sx={{ display: 'grid', gap: 1.25, fontSize: 13 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Ngân hàng:</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>Ngân hàng:</span>
                       <strong>MBBank (Quân Đội)</strong>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Số tài khoản:</span>
-                      <strong style={{ fontFamily: 'monospace', fontSize: 15, color: '#059669' }}>
-                        99998888FINORA
+                      <span style={{ color: 'var(--text-secondary)' }}>Số tài khoản:</span>
+                      <strong style={{ fontFamily: 'monospace', fontSize: 15, color: '#20705B' }}>
+                        99998888TICHLOC
                       </strong>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Tên thụ hưởng:</span>
-                      <strong>FINORA TECHNOLOGY</strong>
+                      <span style={{ color: 'var(--text-secondary)' }}>Tên thụ hưởng:</span>
+                      <strong>TÍCH LỘC TECHNOLOGY</strong>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Số tiền:</span>
-                      <strong style={{ color: '#ef4444', fontSize: 15 }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Số tiền:</span>
+                      <strong style={{ color: '#D65B58', fontSize: 15 }}>
                         {new Intl.NumberFormat('vi-VN').format(selectedPlan.price)} ₫
                       </strong>
                     </Box>
                     <Divider sx={{ my: 0.5 }} />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#64748b' }}>Nội dung CK:</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>Nội dung CK:</span>
                       <Chip
                         label={qrTransferContent}
                         size="small"
@@ -345,7 +346,7 @@ export function PricingDialog({
                 </Paper>
 
                 <Alert severity="success" icon={<ShieldCheck size={18} />} sx={{ borderRadius: 2, mb: 2 }}>
-                  Đây là màn hình demo giả lập giao dịch. Bạn có thể bấm nút bên dưới để trải nghiệm ngay quyền lợi Finora Pro!
+                  Đây là màn hình demo giả lập giao dịch. Bạn có thể bấm nút bên dưới để trải nghiệm ngay quyền lợi Tích Lộc Pro!
                 </Alert>
               </Box>
             </Box>

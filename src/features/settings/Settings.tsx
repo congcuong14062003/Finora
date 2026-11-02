@@ -65,7 +65,7 @@ export default function Settings() {
     }));
     notify(
       nextPlan === 'pro'
-        ? '👑 Đã bật chế độ Finora Pro (Dev Mode)'
+        ? 'Đã bật chế độ Tích Lộc Pro (Dev Mode)'
         : 'Đã chuyển về gói Cơ bản (Free)'
     );
   };
@@ -138,8 +138,8 @@ export default function Settings() {
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, bgcolor: isPro ? 'rgba(245, 158, 11, 0.08)' : 'action.hover', mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {isPro ? 'Finora Pro 👑' : 'Gói Cơ Bản (Free)'}
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {isPro ? 'Tích Lộc Pro' : 'Gói Cơ Bản (Free)'}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   {isPro
@@ -151,7 +151,7 @@ export default function Settings() {
                 label={isPro ? 'ĐANG KÍCH HOẠT' : 'MIỄN PHÍ'}
                 color={isPro ? 'warning' : 'default'}
                 size="small"
-                sx={{ fontWeight: 800, fontSize: 10 }}
+                sx={{ fontWeight: 600, fontSize: 10 }}
               />
             </Box>
 
@@ -161,14 +161,14 @@ export default function Settings() {
                 size="small"
                 color="primary"
                 startIcon={<Sparkles size={15} />}
-                onClick={() => openPricing('Nâng cấp Finora Pro')}
+                onClick={() => openPricing('Nâng cấp Tích Lộc Pro')}
                 sx={{ mt: 1 }}
               >
                 Nâng cấp lên Pro ngay
               </Button>
             ) : (
-              <Typography variant="caption" sx={{ color: '#059669', fontWeight: 600, display: 'block', mt: 0.5 }}>
-                ✨ Hiệu lực đến: {data.user.proExpiresAt || 'Vô thời hạn'}
+              <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, display: 'block', mt: 0.5 }}>
+                Hiệu lực đến: {data.user.proExpiresAt || 'Vô thời hạn'}
               </Typography>
             )}
           </Paper>
@@ -273,7 +273,7 @@ export default function Settings() {
         onClose={() => setResetOpen(false)}
         onConfirm={() => update(() => structuredClone(seed))}
         title="Khôi phục dữ liệu mẫu ban đầu"
-        message="Mọi thay đổi trên thiết bị này sẽ được thay thế bằng bộ dữ liệu mẫu ban đầu của Finora."
+        message="Mọi thay đổi trên thiết bị này sẽ được thay thế bằng bộ dữ liệu mẫu ban đầu của Tích Lộc."
       />
     </>
   );

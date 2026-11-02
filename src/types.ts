@@ -20,11 +20,18 @@ export interface User {
 export interface Account {
   id: string;
   name: string;
-  type: 'cash' | 'bank' | 'ewallet' | 'savings' | 'investment';
+  type: 'cash' | 'bank' | 'ewallet' | 'savings' | 'investment' | 'credit_card';
   openingBalance: Money;
   color: string;
   createdAt: string;
   active: boolean;
+  creditLimit?: Money;
+  statementDay?: number;
+  dueDay?: number;
+  interestRate?: number; // annual percentage, e.g. 28 (%/year)
+  isShared?: boolean;
+  sharedMembers?: string[]; // e.g. ["Bạn", "Vợ/Chồng", "Nhóm bạn"]
+  sharedGoalName?: string;
 }
 
 export interface Category {
@@ -34,6 +41,9 @@ export interface Category {
   icon: string;
   color: string;
   hidden: boolean;
+  incomeKind?: 'active' | 'business' | 'passive';
+  isEssential?: boolean;
+  jarType?: 'nec' | 'ltss' | 'educ' | 'play' | 'ffa' | 'give'; // 6 Jars Method
 }
 
 export interface Transaction {
@@ -49,6 +59,10 @@ export interface Transaction {
   note: string;
   status: Status;
   recurringId?: string;
+  incomeSourceType?: 'active' | 'passive' | 'business' | 'investment_yield';
+  receiptUrl?: string; // Base64 data URL or image preview
+  paidByMember?: string; // for shared wallet expenses
+  isSharedExpense?: boolean;
 }
 
 export interface Budget {
@@ -108,6 +122,19 @@ export interface RecurringTransaction {
   autoExecute?: boolean;
 }
 
+export interface InvestmentAsset {
+  id: string;
+  symbol: string;
+  name: string;
+  assetClass: 'stock' | 'gold' | 'crypto' | 'savings' | 'real_estate';
+  quantity: number;
+  totalCostBasis: Money;
+  currentUnitPrice: Money;
+  annualYieldRate?: number;
+  accountId?: string;
+  updatedAt: string;
+}
+
 export interface QuickTemplate {
   id: string;
   label: string;
@@ -116,6 +143,8 @@ export interface QuickTemplate {
   type: 'income' | 'expense';
   categoryId: string;
   accountId?: string;
+  isBusinessBundle?: boolean;
+  costRatio?: number; // e.g. 0.6 = 60%
 }
 
 export interface Notification {
@@ -123,6 +152,15 @@ export interface Notification {
   title: string;
   read: boolean;
   date: string;
+}
+
+export interface SixJarsConfig {
+  nec: number; // 55%
+  ltss: number; // 10%
+  educ: number; // 10%
+  play: number; // 10%
+  ffa: number; // 10%
+  give: number; // 5%
 }
 
 export interface FinanceData {
@@ -136,4 +174,7 @@ export interface FinanceData {
   recurring: RecurringTransaction[];
   notifications: Notification[];
   quickTemplates: QuickTemplate[];
+  investments?: InvestmentAsset[];
+  sixJarsConfig?: SixJarsConfig;
 }
+

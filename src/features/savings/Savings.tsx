@@ -4,7 +4,6 @@ import { Plus, Target, Pencil, Trash2, History, Laptop, ShieldCheck, Plane } fro
 import {
   Box,
   Button,
-  IconButton,
   Card,
   Typography,
   Chip,
@@ -18,6 +17,7 @@ import {
 import { useFinance } from '../../store';
 import { balance, dateLabel, goalSaved, money, uid, todayKey } from '../../lib/finance';
 import { Confirm, PageHead, Progress } from '../../components/ui';
+import { ItemActionMenu } from '../../components/ItemActionMenu';
 import { canAddGoal } from '../../lib/subscription';
 import {
   MuiTextField,
@@ -193,8 +193,8 @@ export default function Savings() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: '#e9f9f2',
-                    color: '#059669'
+                    bgcolor: 'rgba(21, 150, 107, 0.12)',
+                    color: '#15966B'
                   }}
                 >
                   <Icon size={18} />
@@ -233,7 +233,8 @@ export default function Savings() {
                 Cần dành khoảng <strong>{money(Math.ceil(remaining / months))}</strong> / tháng
               </Typography>
 
-              <Box sx={{ display: 'flex', gap: 1, mt: 2, alignItems: 'center' }}>
+              {/* Action Buttons: 1 Nút chính + Nút More */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto', pt: 1.5, borderTop: '1px solid var(--border-subtle)' }}>
                 <Button
                   size="small"
                   variant="contained"
@@ -244,31 +245,32 @@ export default function Savings() {
                     setSource(data.accounts.find(a => a.id !== g.accountId)?.id || g.accountId);
                     setError('');
                   }}
+                  sx={{ fontWeight: 600, fontSize: 11.5, borderRadius: 1.5 }}
                 >
                   Thêm tiền
                 </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="inherit"
-                  startIcon={<History size={14} />}
-                  onClick={() => setHistory(g)}
-                >
-                  Lịch sử
-                </Button>
-                <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
-                  <IconButton size="small" onClick={() => start(g)} aria-label="Sửa mục tiêu">
-                    <Pencil size={14} />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => setDeleting(g)}
-                    aria-label="Xóa mục tiêu"
-                  >
-                    <Trash2 size={14} />
-                  </IconButton>
-                </Box>
+
+                <ItemActionMenu
+                  ariaLabel={`Tùy chọn mục tiêu ${g.name}`}
+                  items={[
+                    {
+                      label: 'Lịch sử tích lũy',
+                      icon: <History size={15} />,
+                      onClick: () => setHistory(g)
+                    },
+                    {
+                      label: 'Chỉnh sửa mục tiêu',
+                      icon: <Pencil size={15} />,
+                      onClick: () => start(g)
+                    },
+                    {
+                      label: 'Xóa mục tiêu',
+                      icon: <Trash2 size={15} />,
+                      color: 'error' as const,
+                      onClick: () => setDeleting(g)
+                    }
+                  ]}
+                />
               </Box>
             </Card>
           );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -20,7 +20,11 @@ import {
   Search,
   Crown,
   Flame,
-  CheckCircle
+  CheckCircle,
+  TrendingUp,
+  Bot,
+  HardDrive,
+  Cloud
 } from 'lucide-react';
 import {
   Button,
@@ -29,18 +33,22 @@ import {
   Alert,
   Tooltip,
   Box,
-  IconButton
+  IconButton,
+  InputBase
 } from '@mui/material';
 import { useFinance } from '../store';
 import { isProUser } from '../lib/subscription';
 import { updateStreak, autoExecuteRecurring } from '../lib/habit';
 import { todayKey, uid } from '../lib/finance';
 import { PricingDialog } from './PricingDialog';
+import { AiAssistantDrawer } from './AiAssistantDrawer';
+import { CloudSyncModal } from './CloudSyncModal';
 
 const nav = [
   ['/', 'Tổng quan', LayoutDashboard],
   ['/transactions', 'Giao dịch', ArrowLeftRight],
   ['/accounts', 'Tài khoản', Wallet],
+  ['/assets', 'Đầu tư', TrendingUp],
   ['/categories', 'Danh mục', CircleDollarSign],
   ['/budgets', 'Ngân sách', ChartPie],
   ['/savings', 'Tiết kiệm', Target],
@@ -54,6 +62,8 @@ export function Layout() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [notis, setNotis] = useState(false);
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false);
+  const [cloudSyncOpen, setCloudSyncOpen] = useState(false);
   const {
     data,
     theme,
@@ -70,8 +80,21 @@ export function Layout() {
   const loc = useLocation();
   const navigate = useNavigate();
 
-  const title = nav.find(n => n[0] === loc.pathname)?.[1] || 'Finora';
+  const title = nav.find(n => n[0] === loc.pathname)?.[1] || 'Tích Lộc';
   const isPro = data ? isProUser(data) : false;
+
+  const handleTogglePro = async () => {
+    const nextPlan = isPro ? 'free' : 'pro';
+    await update(d => ({
+      ...d,
+      user: {
+        ...d.user,
+        plan: nextPlan,
+        proExpiresAt: nextPlan === 'pro' ? '2099-12-31' : undefined
+      }
+    }));
+    notify(nextPlan === 'pro' ? 'Đã kích hoạt Tích Lộc Pro (Demo Mode)!' : 'Đã chuyển về gói Free');
+  };
 
   // Auto-Execute Recurring Transactions on Startup
   useEffect(() => {
@@ -83,7 +106,7 @@ export function Layout() {
         transactions: [...newTransactions, ...d.transactions],
         recurring: updatedRecurring
       }));
-      notify(`🤖 Đã tự động ghi nhận ${executedCount} giao dịch định kỳ đến hạn hôm nay!`);
+      notify(`Đã tự động ghi nhận ${executedCount} giao dịch định kỳ đến hạn hôm nay!`);
     }
   }, [data?.recurring?.length]);
 
@@ -92,7 +115,7 @@ export function Layout() {
     if (!data) return;
     const today = todayKey();
     if (data.user.lastCheckInDate === today) {
-      notify('Hôm nay bạn đã duy trì chuỗi ghi chép rồi! 🔥');
+      notify('Hôm nay bạn đã duy trì chuỗi ghi chép rồi!');
       return;
     }
 
@@ -120,7 +143,7 @@ export function Layout() {
       }
     }));
 
-    notify(`🔥 Chúc mừng! Bạn đã giữ chuỗi ngày thành công: ${streakResult.streakCount} ngày liên tiếp.`);
+    notify(`Chúc mừng! Bạn đã giữ chuỗi ngày thành công: ${streakResult.streakCount} ngày liên tiếp.`);
   };
 
   const streak = data?.user.streakCount || 1;
@@ -134,8 +157,10 @@ export function Layout() {
         {/* Sidebar */}
         <aside className={`sidebar ${open ? 'open' : ''}`}>
           <div className="brand">
-            <span className="brandmark">F</span>
-            <span>finora</span>
+            <span className="brandmark">
+              <img src="/logo.png" alt="Logo Tích Lộc" className="brandmark-img" />
+            </span>
+            <span style={{ fontWeight: 700, letterSpacing: '-0.02em', fontSize: 18, color: 'var(--text-primary)' }}>Tích Lộc</span>
             {isPro && (
               <Chip
                 label="PRO"
@@ -144,10 +169,10 @@ export function Layout() {
                   ml: 0.5,
                   height: 18,
                   fontSize: 9.5,
-                  fontWeight: 800,
-                  bgcolor: 'rgba(245, 158, 11, 0.15)',
-                  color: '#f59e0b',
-                  border: '1px solid rgba(245, 158, 11, 0.3)'
+                  fontWeight: 700,
+                  bgcolor: 'rgba(217, 154, 54, 0.15)',
+                  color: '#D99A36',
+                  border: '1px solid rgba(217, 154, 54, 0.3)'
                 }}
               />
             )}
@@ -167,28 +192,28 @@ export function Layout() {
                 fullWidth
                 variant="outlined"
                 size="small"
-                startIcon={<Crown size={14} color="#f59e0b" />}
-                onClick={() => openPricing('Mở khóa gói cước Finora Pro')}
+                startIcon={<Crown size={14} color="#D99A36" />}
+                onClick={() => openPricing('Mở khóa gói cước Tích Lộc Pro')}
                 sx={{
                   color: 'text.primary',
-                  borderColor: 'rgba(245, 158, 11, 0.4)',
+                  borderColor: 'rgba(217, 154, 54, 0.4)',
                   fontSize: 12,
-                  fontWeight: 700,
+                  fontWeight: 600,
                   py: 0.7,
                   '&:hover': {
-                    borderColor: '#f59e0b',
-                    bgcolor: 'rgba(245, 158, 11, 0.05)'
+                    borderColor: '#D99A36',
+                    bgcolor: 'rgba(217, 154, 54, 0.05)'
                   }
                 }}
               >
-                Nâng cấp Pro 👑
+                Nâng cấp Pro
               </Button>
             </Box>
           )}
 
           <div className="navlabel">Không gian của bạn</div>
           <nav aria-label="Điều hướng chính">
-            {nav.slice(0, 4).map(([url, label, Icon]) => (
+            {nav.slice(0, 5).map(([url, label, Icon]) => (
               <NavLink
                 key={url}
                 to={url}
@@ -201,7 +226,7 @@ export function Layout() {
               </NavLink>
             ))}
             <div className="navlabel">Kế hoạch tài chính</div>
-            {nav.slice(4, 9).map(([url, label, Icon]) => (
+            {nav.slice(5, 10).map(([url, label, Icon]) => (
               <NavLink
                 key={url}
                 to={url}
@@ -225,12 +250,12 @@ export function Layout() {
             </NavLink>
             <div className="profile">
               <div className="avatar">
-                {isPro ? '👑' : 'MA'}
+                {isPro ? <Crown size={14} /> : 'FA'}
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {data?.user.name}
-                  {isPro && <Crown size={12} color="#f59e0b" />}
+                  {isPro && <Crown size={12} color="#D99A36" />}
                 </div>
                 <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>
                   {isPro ? 'Gói Pro Cao Cấp' : 'Gói Cơ Bản (Free)'}
@@ -243,33 +268,91 @@ export function Layout() {
         {/* Main Content Area */}
         <div className="main">
           <header className="topbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
               <button
                 className="iconbtn mobile-toggle"
                 aria-label="Mở menu"
                 onClick={() => setOpen(true)}
               >
-                <Menu size={16} />
+                <Menu size={18} />
               </button>
-              <div>
-                <div className="crumb">Finora / Sổ tài chính</div>
-                <h1>{title}</h1>
+
+              {/* Logo Tích Lộc trên Mobile & Tablet */}
+              <Box
+                sx={{
+                  display: { xs: 'flex', md: 'none' },
+                  alignItems: 'center',
+                  gap: 1,
+                  flexShrink: 0
+                }}
+              >
+                <img
+                  src="/logo.png"
+                  alt="Logo Tích Lộc"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    objectFit: 'contain',
+                    display: 'block'
+                  }}
+                />
+              </Box>
+
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <Box
+                  component="div"
+                  className="crumb"
+                  sx={{ display: { xs: 'none', sm: 'block' } }}
+                >
+                  Tích Lộc / Sổ tài chính
+                </Box>
+                <h1 style={{
+                  fontSize: 'inherit',
+                  fontWeight: 800,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  margin: 0
+                }}>
+                  {title}
+                </h1>
               </div>
             </div>
 
             <div className="topactions">
-              {/* Daily Streak Badge */}
-              <Tooltip title={isCheckedInToday ? 'Hôm nay bạn đã ghi chép!' : 'Chưa ghi chép hôm nay'}>
+              {/* Daily Streak Badge - Thu gọn trên mobile */}
+              <Tooltip title={isCheckedInToday ? `Chuỗi ghi chép: ${streak} ngày liên tiếp!` : 'Chưa ghi chép hôm nay'}>
                 <Chip
-                  icon={<Flame size={14} style={{ color: '#ef4444' }} />}
-                  label={`${streak} ngày liên tiếp`}
+                  icon={<Flame size={13} style={{ color: '#D65B58' }} />}
+                  label={`${streak}`}
                   size="small"
                   sx={{
+                    display: { xs: 'inline-flex', sm: 'none' },
                     fontWeight: 750,
+                    fontSize: 11,
+                    bgcolor: 'rgba(214, 91, 88, 0.08)',
+                    color: '#D65B58',
+                    border: '1px solid rgba(214, 91, 88, 0.25)',
+                    height: 28,
+                    cursor: 'default',
+                    px: 0.25
+                  }}
+                />
+              </Tooltip>
+
+              <Tooltip title={isCheckedInToday ? 'Hôm nay bạn đã ghi chép!' : 'Chưa ghi chép hôm nay'}>
+                <Chip
+                  icon={<Flame size={14} style={{ color: '#D65B58' }} />}
+                  label={`${streak} ngày`}
+                  size="small"
+                  sx={{
+                    display: { xs: 'none', sm: 'inline-flex' },
+                    fontWeight: 650,
                     fontSize: 11.5,
-                    bgcolor: 'rgba(239, 68, 68, 0.08)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    bgcolor: 'rgba(214, 91, 88, 0.08)',
+                    color: '#D65B58',
+                    border: '1px solid rgba(214, 91, 88, 0.25)',
                     height: 28,
                     cursor: 'default'
                   }}
@@ -298,6 +381,46 @@ export function Layout() {
                 Hôm nay 0đ
               </Button>
 
+              {/* Quick Pro Mode Switch */}
+              <Tooltip title="Chuyển nhanh Free <-> Pro để kiểm thử tính năng (Demo)">
+                <Chip
+                  label={isPro ? 'PRO' : 'FREE'}
+                  size="small"
+                  onClick={handleTogglePro}
+                  color={isPro ? 'warning' : 'default'}
+                  clickable
+                  sx={{
+                    display: { xs: 'none', sm: 'inline-flex' },
+                    fontWeight: 800,
+                    fontSize: 11,
+                    height: 28,
+                    bgcolor: isPro ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-subtle)',
+                    color: isPro ? '#f59e0b' : 'var(--text-muted)',
+                    border: '1px solid',
+                    borderColor: isPro ? 'rgba(245, 158, 11, 0.4)' : 'var(--border-subtle)'
+                  }}
+                />
+              </Tooltip>
+
+              {/* AI Copilot (WebMCP Drawer) */}
+              <Tooltip title="Mở Trợ lý AI Tích Lộc (WebMCP Copilot)">
+                <IconButton
+                  size="small"
+                  onClick={() => setAiDrawerOpen(true)}
+                  sx={{
+                    color: 'primary.main',
+                    bgcolor: 'var(--brand-primary-tint)',
+                    border: '1px solid var(--border-subtle)',
+                    width: { xs: 28, sm: 32 },
+                    height: { xs: 28, sm: 32 },
+                    p: 0.5
+                  }}
+                  aria-label="Trợ lý AI"
+                >
+                  <Bot size={15} />
+                </IconButton>
+              </Tooltip>
+
               {/* Fast search pill */}
               <Box
                 component="form"
@@ -318,15 +441,11 @@ export function Layout() {
                 }}
               >
                 <Search size={13} style={{ color: 'var(--text-muted)' }} />
-                <Box
-                  component="input"
+                <InputBase
                   value={query}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+                  onChange={e => setQuery(e.target.value)}
                   placeholder="Tìm giao dịch..."
                   sx={{
-                    border: 'none',
-                    outline: 'none',
-                    bgcolor: 'transparent',
                     fontSize: 12,
                     width: 130,
                     color: 'inherit',
@@ -335,11 +454,44 @@ export function Layout() {
                 />
               </Box>
 
+              {/* Offline-First & Cloud Sync Indicator */}
+              <Tooltip title="Lưu trữ an toàn trên thiết bị (Offline). Nhấn để đồng bộ Cloud.">
+                <Chip
+                  icon={<HardDrive size={13} style={{ color: 'var(--text-secondary)' }} />}
+                  label="Offline Ready"
+                  size="small"
+                  onClick={() => setCloudSyncOpen(true)}
+                  sx={{
+                    display: { xs: 'none', md: 'inline-flex' },
+                    height: 28,
+                    fontSize: 11,
+                    fontWeight: 750,
+                    bgcolor: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-subtle)',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: 'action.hover'
+                    }
+                  }}
+                />
+              </Tooltip>
+
+              <Tooltip title="Đồng bộ Cloud theo yêu cầu">
+                <IconButton
+                  size="small"
+                  onClick={() => setCloudSyncOpen(true)}
+                  sx={{ color: 'text.primary', border: '1px solid var(--border-subtle)', width: { xs: 28, sm: 32 }, height: { xs: 28, sm: 32 }, p: 0.5 }}
+                  aria-label="Đồng bộ Cloud"
+                >
+                  <Cloud size={15} />
+                </IconButton>
+              </Tooltip>
+
               {/* Theme toggle */}
               <IconButton
                 size="small"
                 onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                sx={{ color: 'text.primary', border: '1px solid var(--border-subtle)', width: 32, height: 32 }}
+                sx={{ color: 'text.primary', border: '1px solid var(--border-subtle)', width: { xs: 28, sm: 32 }, height: { xs: 28, sm: 32 }, p: 0.5 }}
                 aria-label="Đổi giao diện"
               >
                 {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
@@ -350,7 +502,7 @@ export function Layout() {
                 <IconButton
                   size="small"
                   onClick={() => setNotis(!notis)}
-                  sx={{ color: 'text.primary', border: '1px solid var(--border-subtle)', width: 32, height: 32 }}
+                  sx={{ color: 'text.primary', border: '1px solid var(--border-subtle)', width: { xs: 28, sm: 32 }, height: { xs: 28, sm: 32 }, p: 0.5 }}
                   aria-label="Thông báo"
                 >
                   <Bell size={15} />
@@ -402,6 +554,49 @@ export function Layout() {
           <main className="content">
             <Outlet />
           </main>
+
+          {/* Mobile Bottom Navigation Bar */}
+          <nav className="mobile-bottom-bar" aria-label="Điều hướng nhanh điện thoại">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
+            >
+              <LayoutDashboard size={20} />
+              <span>Tổng quan</span>
+            </NavLink>
+            <NavLink
+              to="/transactions"
+              className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
+            >
+              <ArrowLeftRight size={20} />
+              <span>Giao dịch</span>
+            </NavLink>
+            <NavLink
+              to="/accounts"
+              className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
+            >
+              <Wallet size={20} />
+              <span>Tài khoản</span>
+            </NavLink>
+            <NavLink
+              to="/assets"
+              className={({ isActive }) => `mobile-bottom-item ${isActive ? 'active' : ''}`}
+            >
+              <TrendingUp size={20} />
+              <span>Đầu tư</span>
+            </NavLink>
+            <button
+              type="button"
+              className="mobile-bottom-item"
+              onClick={() => setOpen(true)}
+              aria-label="Mở menu tất cả tính năng"
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <Menu size={20} />
+              <span>Menu</span>
+            </button>
+          </nav>
         </div>
 
         {/* Global Snackbar with Undo */}
@@ -443,6 +638,18 @@ export function Layout() {
           open={pricingOpen}
           onClose={closePricing}
           initialFeatureHighlight={pricingFeature}
+        />
+
+        {/* AI Assistant Drawer */}
+        <AiAssistantDrawer
+          open={aiDrawerOpen}
+          onClose={() => setAiDrawerOpen(false)}
+        />
+
+        {/* Offline & Cloud Sync Modal */}
+        <CloudSyncModal
+          open={cloudSyncOpen}
+          onClose={() => setCloudSyncOpen(false)}
         />
       </div>
     </div>

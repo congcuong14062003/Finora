@@ -75,7 +75,10 @@ export default function Auth() {
         }}
       >
         <Link to="/" className="brand" style={{ padding: 0, color: 'white' }}>
-          <span className="brandmark">F</span>finora
+          <span className="brandmark">
+            <img src="/logo.png" alt="Logo Tích Lộc" className="brandmark-img" />
+          </span>
+          Tích Lộc
         </Link>
         <div>
           <div
@@ -83,7 +86,7 @@ export default function Auth() {
               fontSize: 12,
               textTransform: 'uppercase',
               letterSpacing: 2,
-              color: '#6ee7b7',
+              color: '#27866A',
               fontWeight: 700
             }}
           >
@@ -111,8 +114,8 @@ export default function Auth() {
 
       <div style={{ display: 'grid', placeItems: 'center', padding: 24 }}>
         <div style={{ width: 'min(100%, 380px)' }}>
-          <div className="eyebrow">FINORA DEMO</div>
-          <h2 style={{ fontSize: 29, letterSpacing: -1, margin: '0 0 8px' }}>{label}</h2>
+          <div className="section-caption">TÍCH LỘC DEMO</div>
+          <h2 style={{ fontSize: 28, letterSpacing: -1, margin: '0 0 8px' }}>{label}</h2>
           <p className="sub" style={{ lineHeight: 1.6, marginBottom: 20 }}>
             Luồng giao diện dùng thử. Chưa có xác thực tài khoản thực tế.
           </p>
@@ -132,7 +135,7 @@ export default function Auth() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="ban@example.com"
+              placeholder="nguyenminhanh@tichloc.vn"
               required
             />
             {mode !== 'forgot' && (
@@ -168,10 +171,10 @@ export default function Auth() {
               {mode === 'forgot'
                 ? 'Tiếp tục'
                 : mode === 'register'
-                ? 'Tạo tài khoản demo'
-                : mode === 'reset'
-                ? 'Đặt lại'
-                : 'Đăng nhập demo'}
+                  ? 'Tạo tài khoản demo'
+                  : mode === 'reset'
+                    ? 'Đặt lại'
+                    : 'Đăng nhập demo'}
             </Button>
           </Box>
 

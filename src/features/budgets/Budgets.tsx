@@ -26,11 +26,15 @@ import {
 } from '../../components/mui/MuiInputs';
 import type { Budget } from '../../types';
 
+import { SixJarsView } from '../jars/SixJarsView';
+import { Tabs, Tab } from '@mui/material';
+
 export default function Budgets() {
   const data = useFinance(s => s.data)!;
   const update = useFinance(s => s.update);
   const openPricing = useFinance(s => s.openPricing);
 
+  const [activeTab, setActiveTab] = useState<'categories' | 'jars'>('categories');
   const current = monthKey(new Date());
   const [month, setMonth] = useState(current);
   const [open, setOpen] = useState(false);
@@ -99,26 +103,44 @@ export default function Budgets() {
         title="Ngân sách"
         subtitle="Theo dõi mức đã dùng từ các giao dịch chi tiêu thực tế."
         actions={
-          <>
-            <MuiMonthPicker
-              label="Chọn tháng"
-              value={month}
-              onChange={val => setMonth(val)}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Plus size={14} />}
-              onClick={() => start()}
-            >
-              Tạo ngân sách
-            </Button>
-          </>
+          activeTab === 'categories' ? (
+            <>
+              <MuiMonthPicker
+                label="Chọn tháng"
+                value={month}
+                onChange={val => setMonth(val)}
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<Plus size={14} />}
+                onClick={() => start()}
+              >
+                Tạo ngân sách
+              </Button>
+            </>
+          ) : undefined
         }
       />
 
-      {/* Stats Summary */}
-      <div className="grid-stats" style={{ marginBottom: 20 }}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, val) => setActiveTab(val)}
+          textColor="primary"
+          indicatorColor="primary"
+        >
+          <Tab value="categories" label="Ngân sách danh mục" sx={{ fontWeight: 700, textTransform: 'none' }} />
+          <Tab value="jars" label="Phương pháp 6 chiếc hũ (6 Jars & ZBB)" sx={{ fontWeight: 700, textTransform: 'none' }} />
+        </Tabs>
+      </Box>
+
+      {activeTab === 'jars' ? (
+        <SixJarsView />
+      ) : (
+        <>
+          {/* Stats Summary */}
+          <div className="grid-stats" style={{ marginBottom: 20 }}>
         <div className="card stat">
           <span className="stat-label">Tổng hạn mức</span>
           <div className="stat-value">
@@ -254,6 +276,8 @@ export default function Budgets() {
           </Box>
         )}
       </div>
+      </>
+      )}
 
       {/* Add / Edit Budget Modal */}
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>

@@ -51,7 +51,7 @@ export default function Reports() {
 
   const handlePeriodChange = (newPeriod: Period) => {
     if (!canUsePeriodInReport(data, newPeriod)) {
-      openPricing('Xem báo cáo đa kỳ (Tuần/Quý/Năm/Tùy chỉnh) là đặc quyền Finora Pro 👑');
+      openPricing('Xem báo cáo đa kỳ (Tuần/Quý/Năm/Tùy chỉnh) là đặc quyền Tích Lộc Pro');
       return;
     }
     setPeriod(newPeriod);
@@ -59,10 +59,10 @@ export default function Reports() {
 
   const handleExportCsv = () => {
     if (!isPro) {
-      openPricing('Xuất dữ liệu báo cáo chuyên sâu CSV/Excel là tính năng Finora Pro 👑');
+      openPricing('Xuất dữ liệu báo cáo chuyên sâu CSV/Excel là tính năng Tích Lộc Pro');
       return;
     }
-    downloadCsv('finora-bao-cao.csv', csv);
+    downloadCsv('tichloc-bao-cao.csv', csv);
   };
 
   const bounds = useMemo(() => {
@@ -168,7 +168,7 @@ export default function Reports() {
             startIcon={<Download size={14} />}
             onClick={handleExportCsv}
           >
-            Xuất báo cáo CSV {!isPro && '👑'}
+            Xuất báo cáo CSV {!isPro && '(Pro)'}
           </Button>
         }
       />
@@ -187,11 +187,11 @@ export default function Reports() {
             value={period}
             onChange={val => handlePeriodChange(val as Period)}
             options={[
-              { value: 'month', label: 'Tháng này (Free)' },
-              { value: 'week', label: 'Tuần này 👑' },
-              { value: 'quarter', label: 'Quý này 👑' },
-              { value: 'year', label: 'Năm nay 👑' },
-              { value: 'custom', label: 'Tùy chỉnh khoảng ngày 👑' }
+              { value: 'month', label: 'Tháng này' },
+              { value: 'week', label: 'Tuần này (Pro)' },
+              { value: 'quarter', label: 'Quý này (Pro)' },
+              { value: 'year', label: 'Năm nay (Pro)' },
+              { value: 'custom', label: 'Tùy chỉnh khoảng ngày (Pro)' }
             ]}
           />
 
@@ -233,7 +233,7 @@ export default function Reports() {
         <div className="card stat">
           <div className="stat-top">
             <span className="stat-label">Tổng thu nhập</span>
-            <span className="stat-icon" style={{ color: '#059669', background: '#e9f9f2' }}>
+            <span className="stat-icon" style={{ color: '#15966B', background: 'transparent' }}>
               <TrendingUp />
             </span>
           </div>
@@ -243,7 +243,7 @@ export default function Reports() {
         <div className="card stat">
           <div className="stat-top">
             <span className="stat-label">Tổng chi tiêu</span>
-            <span className="stat-icon" style={{ color: '#dc2626', background: '#fef0ef' }}>
+            <span className="stat-icon" style={{ color: '#D65B58', background: 'transparent' }}>
               <TrendingDown />
             </span>
           </div>
@@ -256,7 +256,7 @@ export default function Reports() {
         <div className="card stat">
           <div className="stat-top">
             <span className="stat-label">Chênh lệch thu chi</span>
-            <span className="stat-icon" style={{ color: '#3b82f6', background: '#eff6ff' }}>
+            <span className="stat-icon" style={{ color: '#4E7BC5', background: 'transparent' }}>
               <ChartNoAxesCombined />
             </span>
           </div>
@@ -287,12 +287,12 @@ export default function Reports() {
             {trend.length ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={trend} margin={{ left: -15 }}>
-                  <CartesianGrid vertical={false} stroke="#edf0f3" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={shortMoney} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={v => money(Number(v))} />
-                  <Bar dataKey="income" name="Thu nhập" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Chi tiêu" fill="#f16d73" radius={[4, 4, 0, 0]} />
+                  <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={shortMoney} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={v => money(Number(v))} cursor={false} />
+                  <Bar dataKey="income" name="Thu nhập" fill="#15966B" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name="Chi tiêu" fill="#D65B58" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -334,16 +334,16 @@ export default function Reports() {
         <div className="chart-box" style={{ height: 230 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={worthTrend} margin={{ left: -14, right: 15 }}>
-              <CartesianGrid vertical={false} stroke="#edf0f3" />
-              <XAxis dataKey="date" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={shortMoney} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+              <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="3 3" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={shortMoney} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
               <Tooltip formatter={v => money(Number(v))} />
               <Line
                 type="monotone"
                 dataKey="net"
                 name="Tài sản ròng"
-                stroke="#10b981"
-                strokeWidth={3}
+                stroke="#20705B"
+                strokeWidth={2.5}
                 dot={false}
               />
             </LineChart>

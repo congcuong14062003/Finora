@@ -1,4 +1,5 @@
 import { createTheme, type ThemeOptions } from '@mui/material/styles';
+import type {} from '@mui/x-date-pickers/themeAugmentation';
 
 export function getFinoraTheme(mode: 'light' | 'dark') {
   const isDark = mode === 'dark';
@@ -7,69 +8,70 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
     palette: {
       mode,
       primary: {
-        main: isDark ? '#10b981' : '#059669', // Emerald
-        light: '#34d399',
-        dark: '#047857',
+        main: isDark ? '#27866A' : '#20705B',
+        light: isDark ? '#349E7F' : '#27866A',
+        dark: '#123D35',
         contrastText: '#ffffff'
       },
       secondary: {
-        main: '#0f172a', // Deep Slate
-        light: '#334155',
-        dark: '#020617',
+        main: isDark ? '#A4B2A8' : '#68756F',
+        light: isDark ? '#EDF4EF' : '#A4AEA8',
+        dark: isDark ? '#6C7D72' : '#34413D',
         contrastText: '#ffffff'
       },
       success: {
-        main: '#10b981',
+        main: '#15966B',
+        light: '#22c55e',
         contrastText: '#ffffff'
       },
       error: {
-        main: '#ef4444',
+        main: '#D65B58',
         contrastText: '#ffffff'
       },
       warning: {
-        main: '#f59e0b',
+        main: '#D99A36',
         contrastText: '#ffffff'
       },
       info: {
-        main: '#3b82f6',
+        main: '#4E7BC5',
         contrastText: '#ffffff'
       },
       background: {
-        default: isDark ? '#080c14' : '#f8fafc',
-        paper: isDark ? '#0f172a' : '#ffffff'
+        default: isDark ? '#0A110E' : '#EDF2EF',
+        paper: isDark ? '#16231D' : '#FFFFFF'
       },
       text: {
-        primary: isDark ? '#f8fafc' : '#0f172a',
-        secondary: isDark ? '#94a3b8' : '#64748b'
+        primary: isDark ? '#EEF5F0' : '#17211F',
+        secondary: isDark ? '#A3B5AB' : '#68756F'
       },
-      divider: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(226, 232, 240, 0.8)'
+      divider: isDark ? '#24352C' : '#D0DDD5'
     },
     shape: {
-      borderRadius: 10
+      borderRadius: 8
     },
     typography: {
       fontFamily: [
-        'Plus Jakarta Sans',
+        'Be Vietnam Pro',
         '-apple-system',
         'BlinkMacSystemFont',
         '"Segoe UI"',
         'Roboto',
         'sans-serif'
       ].join(','),
-      h1: { fontWeight: 800, letterSpacing: '-0.03em' },
-      h2: { fontWeight: 800, letterSpacing: '-0.03em' },
-      h3: { fontWeight: 800, letterSpacing: '-0.025em' },
-      h4: { fontWeight: 800, letterSpacing: '-0.02em' },
-      h5: { fontWeight: 800, letterSpacing: '-0.02em' },
-      h6: { fontWeight: 700, letterSpacing: '-0.015em' },
-      subtitle1: { fontWeight: 600, letterSpacing: '-0.01em' },
-      subtitle2: { fontWeight: 600, letterSpacing: '-0.01em' },
-      body1: { fontSize: 14, letterSpacing: '-0.005em' },
-      body2: { fontSize: 13, letterSpacing: '-0.005em' },
+      h1: { fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.25 },
+      h2: { fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.28 },
+      h3: { fontWeight: 650, letterSpacing: '-0.02em', lineHeight: 1.3 },
+      h4: { fontWeight: 600, letterSpacing: '-0.015em', lineHeight: 1.32 },
+      h5: { fontWeight: 600, letterSpacing: '-0.015em', lineHeight: 1.35 },
+      h6: { fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35 },
+      subtitle1: { fontWeight: 500, letterSpacing: '-0.005em' },
+      subtitle2: { fontWeight: 500, letterSpacing: '-0.005em' },
+      body1: { fontSize: 14, fontWeight: 400, lineHeight: 1.5 },
+      body2: { fontSize: 13, fontWeight: 400, lineHeight: 1.48 },
       button: {
         textTransform: 'none',
-        fontWeight: 650,
-        letterSpacing: '-0.01em'
+        fontWeight: 500,
+        letterSpacing: '-0.005em'
       }
     },
     components: {
@@ -78,29 +80,28 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
           root: {
             borderRadius: 8,
             textTransform: 'none',
-            fontWeight: 650,
+            fontWeight: 500,
             fontSize: 13,
             boxShadow: 'none',
-            padding: '7px 14px',
-            transition: 'all 0.15s ease',
+            padding: '7px 15px',
+            transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
             '&:hover': {
               boxShadow: 'none'
             }
           },
           contained: {
-            background: isDark
-              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-              : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+            backgroundColor: isDark ? '#27866A' : '#20705B',
             color: '#ffffff',
             '&:hover': {
-              filter: 'brightness(1.08)'
+              backgroundColor: isDark ? '#20705B' : '#185548'
             }
           },
           outlined: {
-            borderColor: isDark ? '#1e293b' : '#e2e8f0',
+            borderColor: isDark ? '#2D3A32' : '#DCE3DE',
+            color: isDark ? '#EDF4EF' : '#17211F',
             '&:hover': {
-              borderColor: isDark ? '#334155' : '#cbd5e1',
-              backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'
+              borderColor: isDark ? '#3F5146' : '#BDC7C1',
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)'
             }
           }
         }
@@ -111,10 +112,10 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
             backgroundImage: 'none'
           },
           rounded: {
-            borderRadius: 14
+            borderRadius: 12
           },
           outlined: {
-            borderColor: isDark ? '#1e293b' : '#e2e8f0'
+            borderColor: isDark ? '#24352C' : '#D0DDD5'
           }
         }
       },
@@ -122,9 +123,10 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            borderRadius: 14,
-            borderColor: isDark ? '#1e293b' : '#e2e8f0',
-            boxShadow: 'none'
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
+            borderRadius: 12,
+            borderColor: isDark ? '#24352C' : '#D0DDD5',
+            boxShadow: isDark ? '0 1px 3px rgba(0, 0, 0, 0.25)' : '0 1px 3px rgba(18, 61, 53, 0.04)'
           }
         }
       },
@@ -133,8 +135,9 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
           paper: {
             borderRadius: 16,
             backgroundImage: 'none',
-            border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0',
-            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.25)'
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
+            border: isDark ? '1px solid #24352C' : '1px solid #D0DDD5',
+            boxShadow: isDark ? '0 20px 48px rgba(0, 0, 0, 0.5)' : '0 20px 48px rgba(23, 33, 31, 0.08)'
           }
         }
       },
@@ -148,16 +151,16 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
         styleOverrides: {
           root: {
             borderRadius: 8,
-            backgroundColor: isDark ? '#0f172a' : '#ffffff',
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
             fontSize: 13.5,
             '& fieldset': {
-              borderColor: isDark ? '#1e293b' : '#e2e8f0'
+              borderColor: isDark ? '#24352C' : '#D0DDD5'
             },
             '&:hover fieldset': {
-              borderColor: isDark ? '#334155' : '#cbd5e1'
+              borderColor: isDark ? '#3A5244' : '#A8BCB0'
             },
             '&.Mui-focused fieldset': {
-              borderColor: isDark ? '#10b981' : '#059669',
+              borderColor: isDark ? '#27866A' : '#20705B',
               borderWidth: 1.5
             }
           }
@@ -167,26 +170,158 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
         styleOverrides: {
           root: {
             borderRadius: 6,
-            fontWeight: 650,
+            fontWeight: 500,
             fontSize: 11.5
           },
           outlined: {
-            borderColor: isDark ? '#1e293b' : '#e2e8f0'
+            borderColor: isDark ? '#24352C' : '#D0DDD5'
+          }
+        }
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            color: isDark ? '#EEF5F0' : '#17211F',
+            fontWeight: 800
+          }
+        }
+      },
+      MuiDialogContent: {
+        styleOverrides: {
+          root: {
+            color: isDark ? '#EEF5F0' : '#17211F'
+          }
+        }
+      },
+      MuiDialogActions: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
+            borderTop: isDark ? '1px solid #24352C' : '1px solid #D0DDD5'
+          }
+        }
+      },
+      MuiMenu: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
+            color: isDark ? '#EEF5F0' : '#17211F',
+            borderRadius: 12,
+            border: isDark ? '1px solid #24352C' : '1px solid #D0DDD5',
+            boxShadow: isDark ? '0 12px 32px rgba(0,0,0,0.45)' : '0 12px 32px rgba(23,33,31,0.08)'
+          }
+        }
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: {
+            color: isDark ? '#EEF5F0' : '#17211F',
+            fontSize: 13,
+            '&:hover': {
+              backgroundColor: isDark ? '#1E2E26' : '#F6F9F7'
+            },
+            '&.Mui-selected': {
+              backgroundColor: isDark ? '#26382F' : '#E3EBE6',
+              '&:hover': {
+                backgroundColor: isDark ? '#2D4438' : '#D0DDD5'
+              }
+            }
+          }
+        }
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
+            color: isDark ? '#EEF5F0' : '#17211F',
+            borderRadius: 12,
+            border: isDark ? '1px solid #24352C' : '1px solid #D0DDD5',
+            boxShadow: isDark ? '0 12px 32px rgba(0,0,0,0.45)' : '0 12px 32px rgba(23,33,31,0.08)'
+          }
+        }
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
+            color: isDark ? '#EEF5F0' : '#17211F',
+            borderLeft: isDark ? '1px solid #24352C' : '1px solid #D0DDD5'
+          }
+        }
+      },
+      MuiSelect: {
+        styleOverrides: {
+          icon: {
+            color: isDark ? '#A3B5AB' : '#68756F'
+          }
+        }
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            color: isDark ? '#A3B5AB' : '#68756F',
+            '&.Mui-focused': {
+              color: isDark ? '#27866A' : '#20705B'
+            }
+          }
+        }
+      },
+      MuiDateCalendar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark ? '#16231D' : '#FFFFFF',
+            color: isDark ? '#EEF5F0' : '#17211F'
+          }
+        }
+      },
+      MuiPickersCalendarHeader: {
+        styleOverrides: {
+          label: {
+            color: isDark ? '#EEF5F0' : '#17211F',
+            fontWeight: 700
+          },
+          switchViewIcon: {
+            color: isDark ? '#A3B5AB' : '#68756F'
+          }
+        }
+      },
+      MuiDayCalendar: {
+        styleOverrides: {
+          weekDayLabel: {
+            color: isDark ? '#72857A' : '#7A8981',
+            fontWeight: 600
+          }
+        }
+      },
+      MuiPickerDay: {
+        styleOverrides: {
+          root: {
+            color: isDark ? '#EEF5F0' : '#17211F',
+            '&:hover': {
+              backgroundColor: isDark ? '#1E2E26' : '#F6F9F7'
+            },
+            '&.Mui-selected': {
+              backgroundColor: isDark ? '#27866A' : '#20705B',
+              color: '#ffffff',
+              '&:hover': {
+                backgroundColor: isDark ? '#20705B' : '#185548'
+              }
+            }
           }
         }
       },
       MuiTableHead: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#0b1120' : '#f8fafc',
+            backgroundColor: isDark ? '#131D18' : '#F8FAF8',
             '& .MuiTableCell-head': {
+              color: isDark ? '#A4B2A8' : '#68756F',
+              fontWeight: 600,
               fontSize: 11.5,
-              fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.04em',
-              color: isDark ? '#94a3b8' : '#64748b',
-              borderBottom: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0',
-              padding: '12px 16px'
+              borderBottom: isDark ? '1px solid #24352C' : '1px solid #D0DDD5',
+              padding: '10px 16px'
             }
           }
         }
@@ -194,20 +329,50 @@ export function getFinoraTheme(mode: 'light' | 'dark') {
       MuiTableCell: {
         styleOverrides: {
           root: {
+            borderColor: isDark ? '#24352C' : '#D0DDD5',
+            padding: '12px 16px',
             fontSize: 13,
-            borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9',
-            padding: '12px 16px'
+            color: isDark ? '#EEF5F0' : '#17211F'
           }
         }
       },
-      MuiToggleButton: {
+      MuiTabs: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
-            borderColor: isDark ? '#1e293b' : '#e2e8f0',
+            minHeight: 40
+          },
+          indicator: {
+            backgroundColor: isDark ? '#27866A' : '#20705B',
+            height: 2.5,
+            borderRadius: '2px 2px 0 0'
+          }
+        }
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            minHeight: 40,
+            padding: '8px 16px',
+            fontSize: 13,
+            fontWeight: 500,
             textTransform: 'none',
-            fontSize: 12.5,
-            fontWeight: 650
+            color: isDark ? '#A4B2A8' : '#68756F',
+            '&.Mui-selected': {
+              color: isDark ? '#EDF4EF' : '#20705B',
+              fontWeight: 600
+            }
+          }
+        }
+      },
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            backgroundColor: isDark ? '#202C25' : '#17211F',
+            color: isDark ? '#EDF4EF' : '#FFFFFF',
+            fontSize: 11.5,
+            fontWeight: 500,
+            borderRadius: 6,
+            padding: '6px 10px'
           }
         }
       }

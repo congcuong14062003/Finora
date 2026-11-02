@@ -18,8 +18,6 @@ import {
   YAxis
 } from 'recharts';
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
   Plus,
   ArrowRight,
   CalendarDays,
@@ -45,7 +43,10 @@ import {
 import { PageHead, Progress, Empty } from '../../components/ui';
 import { MagicQuickBar } from '../../components/MagicQuickBar';
 import { SafeToSpendCard } from '../../components/SafeToSpendCard';
+import { RiskAlertsCard } from '../../components/RiskAlertsCard';
+import { FinancialFreedomCard } from '../../components/FinancialFreedomCard';
 import { MuiDatePicker, MuiSelect } from '../../components/mui/MuiInputs';
+import { BankLogoBadge, CategoryAvatarBadge } from '../../lib/brandBadges';
 import type { Transaction } from '../../types';
 
 const rangeNames: { key: RangeKey; label: string }[] = [
@@ -61,7 +62,6 @@ const tooltipStyle = {
   borderRadius: 8,
   border: '1px solid var(--border-subtle)',
   backgroundColor: 'var(--bg-surface)',
-  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
   fontSize: 12,
   fontWeight: 600,
   color: 'var(--text-primary)'
@@ -197,8 +197,14 @@ export default function Dashboard() {
       {/* Habit Loop: Magic Quick-Bar */}
       <MagicQuickBar onOpenPricing={openPricing} />
 
-      {/* Habit Loop: Daily Safe-To-Spend Card */}
-      <SafeToSpendCard />
+      {/* Executive Bento Grid: Safe-To-Spend & Financial Freedom side-by-side */}
+      <div className="dashboard-bento">
+        <SafeToSpendCard />
+        <FinancialFreedomCard />
+      </div>
+
+      {/* Risk Alert Engine & Smart Budget Rebalancer */}
+      <RiskAlertsCard />
 
       {range === 'custom' && (
         <Box sx={{ display: 'flex', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
@@ -229,7 +235,7 @@ export default function Dashboard() {
                 style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: delta.startsWith('+') ? '#059669' : delta.startsWith('-') ? '#dc2626' : 'var(--text-muted)'
+                  color: delta.startsWith('+') ? 'var(--accent-income)' : delta.startsWith('-') ? 'var(--accent-expense)' : 'var(--text-muted)'
                 }}
               >
                 {delta}
@@ -257,11 +263,11 @@ export default function Dashboard() {
             </div>
             <div className="legend">
               <span>
-                <i className="dot" style={{ background: '#10b981' }} />
+                <i className="dot" style={{ background: '#15966B' }} />
                 Thu nhập
               </span>
               <span>
-                <i className="dot" style={{ background: '#f43f5e' }} />
+                <i className="dot" style={{ background: '#D65B58' }} />
                 Chi tiêu
               </span>
             </div>
@@ -272,16 +278,16 @@ export default function Dashboard() {
                 <AreaChart data={series} margin={{ top: 8, right: 7, bottom: 0, left: -18 }}>
                   <defs>
                     <linearGradient id="gIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.12" />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                      <stop offset="0%" stopColor="#15966B" stopOpacity="0.12" />
+                      <stop offset="100%" stopColor="#15966B" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   <CartesianGrid vertical={false} stroke="var(--border-subtle)" strokeDasharray="3 3" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={shortMoney} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                   <Tooltip formatter={v => money(Number(v))} contentStyle={tooltipStyle} />
-                  <Area type="monotone" dataKey="income" name="Thu nhập" stroke="#10b981" strokeWidth={2} fill="url(#gIncome)" />
-                  <Area type="monotone" dataKey="expense" name="Chi tiêu" stroke="#f43f5e" strokeWidth={2} fill="transparent" />
+                  <Area type="monotone" dataKey="income" name="Thu nhập" stroke="#15966B" strokeWidth={2} fill="url(#gIncome)" />
+                  <Area type="monotone" dataKey="expense" name="Chi tiêu" stroke="#D65B58" strokeWidth={2} fill="transparent" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -343,18 +349,16 @@ export default function Dashboard() {
               recent.map((t: Transaction) => (
                 <div className="mini-row" key={t.id}>
                   <div className="mini-left">
-                    <div
-                      className="mini-icon"
-                      style={{
-                        color: t.type === 'income' ? '#059669' : t.type === 'transfer' ? '#3b82f6' : '#e11d48'
-                      }}
-                    >
-                      {t.type === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
-                    </div>
+                    <CategoryAvatarBadge
+                      categoryId={t.categoryId}
+                      categoryName={data.categories.find(c => c.id === t.categoryId)?.name}
+                      txType={t.type}
+                    />
                     <div>
                       <div className="mini-name">{t.name}</div>
-                      <div className="mini-sub">
-                        {data.categories.find(c => c.id === t.categoryId)?.name || 'Chuyển khoản'} · {dateLabel(t.date)}
+                      <div className="mini-sub" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <BankLogoBadge accountName={data.accounts.find(a => a.id === t.accountId)?.name} accountType={data.accounts.find(a => a.id === t.accountId)?.type} size="small" />
+                        <span>{data.categories.find(c => c.id === t.categoryId)?.name || 'Chuyển khoản'} · {dateLabel(t.date)}</span>
                       </div>
                     </div>
                   </div>
@@ -418,9 +422,9 @@ export default function Dashboard() {
                   <CartesianGrid vertical={false} stroke="var(--border-subtle)" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={shortMoney} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={v => money(Number(v))} contentStyle={tooltipStyle} />
-                  <Bar name="Thu nhập" dataKey="income" fill="#10b981" radius={[3, 3, 0, 0]} />
-                  <Bar name="Chi tiêu" dataKey="expense" fill="#f43f5e" radius={[3, 3, 0, 0]} />
+                  <Tooltip formatter={v => money(Number(v))} contentStyle={tooltipStyle} cursor={false} />
+                  <Bar name="Thu nhập" dataKey="income" fill="#15966B" radius={[3, 3, 0, 0]} />
+                  <Bar name="Chi tiêu" dataKey="expense" fill="#D65B58" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -436,20 +440,22 @@ export default function Dashboard() {
           </div>
           <div className="mini-list">
             <div className="mini-row">
-              <span className="mini-name">
-                💡 {category.length ? `Chi tiêu lớn nhất: ${category[0].name} (${money(category[0].value)})` : 'Chưa có chi tiêu trong kỳ đã chọn'}
+              <span className="mini-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Lightbulb size={13} style={{ color: 'var(--accent-warning)', flexShrink: 0 }} />
+                <span>{category.length ? `Chi lớn nhất: ${category[0].name} (${money(category[0].value)})` : 'Chưa có chi tiêu trong kỳ đã chọn'}</span>
               </span>
             </div>
             {warn.slice(0, 2).map(b => (
               <div className="mini-row" key={b.id}>
-                <span className="mini-name">
-                  ⚠️ {b.name} đã dùng {Math.round((budgetSpent(b, data.transactions) / b.limit) * 100)}%
+                <span className="mini-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: 'var(--accent-warning)', display: 'inline-flex' }}>!</span>
+                  <span>{b.name} đã dùng {Math.round((budgetSpent(b, data.transactions) / b.limit) * 100)}%</span>
                 </span>
               </div>
             ))}
             {data.goals.slice(0, 2).map(g => (
               <div className="mini-row" key={g.id}>
-                <span className="mini-name">🎯 {g.name}</span>
+                <span className="mini-name">{g.name}</span>
                 <span className="mini-amount">{Math.round((goalSaved(g) / g.target) * 100)}%</span>
               </div>
             ))}
@@ -459,7 +465,7 @@ export default function Dashboard() {
               .map(r => (
                 <div className="mini-row" key={r.id}>
                   <span className="mini-left">
-                    <CalendarDays size={14} color="#8b5cf6" />
+                    <CalendarDays size={14} style={{ color: 'var(--accent-transfer)' }} />
                     <span className="mini-name">{r.name}</span>
                   </span>
                   <span className="mini-sub">{dateLabel(r.nextDate)}</span>

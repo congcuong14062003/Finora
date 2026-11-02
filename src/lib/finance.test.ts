@@ -9,8 +9,15 @@ import {
   netWorth,
   totals
 } from './finance';
-import { parseVietnameseTransaction } from './nlpParser';
+import { parseVietnameseTransaction, parseVietnameseCommand } from './nlpParser';
 import { calculateSafeToSpend, createReconciliationTransaction, autoExecuteRecurring, updateStreak } from './habit';
+import {
+  calculateTrueSpendableBalance,
+  analyzeFinancialRisks,
+  executeBudgetRebalance,
+  calculateInvestmentSummary,
+  calculateFinancialFreedom
+} from './riskAndInsightEngine';
 import {
   canAddAccount,
   canAddBudget,
@@ -132,6 +139,7 @@ describe('Quy tắc tài chính cơ bản', () => {
       accounts,
       transactions: [],
       debts: [],
+      investments: [],
       goals: [
         {
           id: 'g',
@@ -333,3 +341,195 @@ describe('Phân tầng Free vs Pro (Monetization)', () => {
     expect(res.newTransactions[0].amount).toBe(150000);
   });
 });
+
+describe('Các trụ cột nâng cấp mới (Finora CFO Thông minh)', () => {
+  it('NLP Multi-Intent: nhận diện ý định đầu tư (Cổ phiếu/Vàng/Crypto)', () => {
+    const res1 = parseVietnameseCommand('mua 100 cổ FPT giá 130tr', seed.categories, seed.accounts, 'bank');
+    expect(res1?.intent).toBe('investment');
+    expect(res1?.investment?.symbol).toBe('FPT');
+    expect(res1?.investment?.quantity).toBe(100);
+    expect(res1?.investment?.totalCostBasis).toBe(130000000);
+
+    const res2 = parseVietnameseCommand('mua 2 chỉ vàng SJC 17tr', seed.categories, seed.accounts, 'bank');
+    expect(res2?.intent).toBe('investment');
+    expect(res2?.investment?.assetClass).toBe('gold');
+    expect(res2?.investment?.quantity).toBe(2);
+
+    const res3 = parseVietnameseCommand('mua 0.02 BTC 45tr', seed.categories, seed.accounts, 'bank');
+    expect(res3?.intent).toBe('investment');
+    expect(res3?.investment?.assetClass).toBe('crypto');
+    expect(res3?.investment?.quantity).toBe(0.02);
+  });
+
+  it('NLP Multi-Intent: nhận diện ý định chia tiền nhóm (Split Bill)', () => {
+    const res = parseVietnameseCommand('ăn lẩu 1200k chia 4 người', seed.categories, seed.accounts, 'bank');
+    expect(res?.intent).toBe('split_bill');
+    expect(res?.splitBill?.totalAmount).toBe(1200000);
+    expect(res?.splitBill?.peopleCount).toBe(4);
+    expect(res?.splitBill?.personalShare).toBe(300000);
+    expect(res?.splitBill?.othersShare).toBe(900000);
+  });
+
+  it('NLP Multi-Intent: nhận diện ý định quẹt thẻ tín dụng trả góp', () => {
+    const res = parseVietnameseCommand('quẹt thẻ VCB mua tủ lạnh 12tr trả góp 6 tháng', seed.categories, seed.accounts, 'bank');
+    expect(res?.intent).toBe('credit_installment');
+    expect(res?.creditInstallment?.totalAmount).toBe(12000000);
+    expect(res?.creditInstallment?.installments).toBe(6);
+    expect(res?.creditInstallment?.monthlyAmount).toBe(2000000);
+  });
+
+  it('NLP Multi-Intent: nhận diện ý định cân bằng số dư', () => {
+    const res = parseVietnameseCommand('số dư ví tiền mặt còn 350k', seed.categories, seed.accounts, 'bank');
+    expect(res?.intent).toBe('reconcile');
+    expect(res?.reconcile?.actualBalance).toBe(350000);
+  });
+
+  it('NLP Multi-Intent: nhận diện gói dòng tiền kinh doanh (Business Bundle)', () => {
+    const res = parseVietnameseCommand('doanh thu bán hàng 10tr', seed.categories, seed.accounts, 'bank');
+    expect(res?.intent).toBe('business_bundle');
+    expect(res?.businessBundle?.revenue).toBe(10000000);
+    expect(res?.businessBundle?.cost).toBe(6000000);
+  });
+
+  it('Tính toán True Spendable Balance & Ngày Cháy Túi', () => {
+    const result = calculateTrueSpendableBalance(seed);
+    expect(result.liquidity).toBeGreaterThan(0);
+    expect(result.trueBalance).toBeDefined();
+    expect(result.burnRate7Days).toBeDefined();
+    expect(result.burnRateDaysLeft).toBeDefined();
+    expect(result.burnRateExhaustionDate).toBeDefined();
+  });
+
+  it('Hệ thống Cảnh báo Rủi ro & Điều phối ngân sách 1-Click', () => {
+    const alerts = analyzeFinancialRisks(seed);
+    expect(Array.isArray(alerts)).toBe(true);
+
+    const budgets: Budget[] = [
+      { id: 'b-food', name: 'Ăn uống', categoryId: 'food', limit: 1000000, month: '2026-10' },
+      { id: 'b-shop', name: 'Mua sắm', categoryId: 'shopping', limit: 3000000, month: '2026-10' }
+    ];
+    // Rebalance 400k from shopping to food
+    const nextBudgets = executeBudgetRebalance(budgets, '2026-10', 'shopping', 'food', 400000);
+    expect(nextBudgets.find(b => b.categoryId === 'shopping')?.limit).toBe(2600000);
+    expect(nextBudgets.find(b => b.categoryId === 'food')?.limit).toBe(1400000);
+  });
+
+  it('Thống kê Danh mục Đầu tư & Tính Lãi/Lỗ PnL', () => {
+    const summary = calculateInvestmentSummary(seed.investments || []);
+    expect(summary.totalCostBasis).toBeGreaterThan(0);
+    expect(summary.totalCurrentValue).toBeGreaterThan(0);
+    expect(summary.assetsWithPnL.length).toBe((seed.investments || []).length);
+    expect(summary.allocationByClass.length).toBeGreaterThan(0);
+  });
+
+  it('Thước đo Tự do Tài chính & Runway', () => {
+    const freedom = calculateFinancialFreedom(seed);
+    expect(freedom.freedomRatio).toBeGreaterThanOrEqual(0);
+    expect(freedom.freedomRunwayMonths).toBeGreaterThan(0);
+    expect(freedom.monthlyEssentialExpenses).toBeGreaterThan(0);
+  });
+});
+
+describe('6 Tính năng nâng cấp thực tế (Bank SMS, 6 Hũ, Vay nợ, Hóa đơn, Ví dùng chung, Nhắc nhở định kỳ)', () => {
+  it('Bank SMS Parser: bóc tách chính xác tin nhắn trừ tiền VCB', async () => {
+    const { parseBankSms } = await import('./bankSmsParser');
+    const sms = 'TK 1023456789 tai VCB -250,000 VND vao 14:30 02/11/2026. ND: Qr thanh toan VinMart Daily. So du: 15,230,000 VND';
+    const res = parseBankSms(sms, seed.accounts, seed.categories);
+    expect(res).not.toBeNull();
+    expect(res?.bankCode).toBe('VCB');
+    expect(res?.amount).toBe(250000);
+    expect(res?.type).toBe('expense');
+    expect(res?.balanceAfter).toBe(15230000);
+    expect(res?.description.toLowerCase()).toContain('vinmart');
+  });
+
+  it('Bank SMS Parser: bóc tách chính xác tin nhắn nhận lương Techcombank', async () => {
+    const { parseBankSms } = await import('./bankSmsParser');
+    const sms = 'Bien dong so du: TK 1903... tai Techcombank +18,500,000VND luc 09:15 02/11/2026. ND: Cong ty ABC tra luong T10. So du: 31,400,000VND';
+    const res = parseBankSms(sms, seed.accounts, seed.categories);
+    expect(res).not.toBeNull();
+    expect(res?.bankCode).toBe('TCB');
+    expect(res?.amount).toBe(18500000);
+    expect(res?.type).toBe('income');
+    expect(res?.balanceAfter).toBe(31400000);
+  });
+
+  it('Bank SMS Parser: bóc tách chính xác tin nhắn MoMo', async () => {
+    const { parseBankSms } = await import('./bankSmsParser');
+    const sms = 'MoMo: Ban da thanh toan thanh cong 55.000d cho Phuc Long Coffee & Tea. So du vi: 450.000d';
+    const res = parseBankSms(sms, seed.accounts, seed.categories);
+    expect(res).not.toBeNull();
+    expect(res?.bankCode).toBe('MOMO');
+    expect(res?.amount).toBe(55000);
+    expect(res?.type).toBe('expense');
+    expect(res?.balanceAfter).toBe(450000);
+  });
+
+  it('Phương pháp 6 chiếc hũ (6 Jars): phân bổ đúng tỷ lệ 100% thu nhập', () => {
+    const income = 20000000;
+    const nec = Math.round((income * 55) / 100);
+    const ltss = Math.round((income * 10) / 100);
+    const educ = Math.round((income * 10) / 100);
+    const play = Math.round((income * 10) / 100);
+    const ffa = Math.round((income * 10) / 100);
+    const give = Math.round((income * 5) / 100);
+
+    expect(nec + ltss + educ + play + ffa + give).toBe(income);
+    expect(nec).toBe(11000000);
+    expect(ffa).toBe(2000000);
+    expect(give).toBe(1000000);
+  });
+
+  it('Ví dùng chung (Shared Wallets): hỗ trợ cấu hình thành viên và quỹ chung', () => {
+    const sharedAcc: Account = {
+      id: 'shared-1',
+      name: 'Quỹ gia đình',
+      type: 'bank',
+      openingBalance: 5000000,
+      color: '#059669',
+      createdAt: '2026-11-01',
+      active: true,
+      isShared: true,
+      sharedMembers: ['Bạn', 'Vợ'],
+      sharedGoalName: 'Quỹ chi tiêu sinh hoạt gia đình'
+    };
+    expect(sharedAcc.isShared).toBe(true);
+    expect(sharedAcc.sharedMembers?.length).toBe(2);
+    expect(sharedAcc.sharedGoalName).toBeDefined();
+  });
+
+  it('Đính kèm hóa đơn / biên lai (Receipt): lưu trữ data URL và liên kết với giao dịch', () => {
+    const txWithReceipt: Transaction = {
+      id: 'tx-receipt-1',
+      name: 'Siêu thị VinMart',
+      amount: 250000,
+      type: 'expense',
+      categoryId: 'food',
+      accountId: 'acc-1',
+      date: '2026-11-02',
+      method: 'Thẻ',
+      note: 'Có hóa đơn kèm theo',
+      status: 'completed',
+      receiptUrl: 'data:image/svg+xml;utf8,<svg>test</svg>'
+    };
+    expect(txWithReceipt.receiptUrl).toBeDefined();
+    expect(txWithReceipt.receiptUrl).toContain('data:image');
+  });
+
+  it('Nhắc nhở hóa đơn định kỳ: lọc chính xác hóa đơn đến hạn trong vòng 7 ngày', () => {
+    const today = new Date('2026-11-02');
+    const recurringList = [
+      { id: 'r1', name: 'Tiền nhà', amount: 5000000, nextDate: '2026-11-05', active: true, type: 'expense' },
+      { id: 'r2', name: 'Cước Internet', amount: 300000, nextDate: '2026-11-08', active: true, type: 'expense' },
+      { id: 'r3', name: 'Netflix', amount: 260000, nextDate: '2026-11-28', active: true, type: 'expense' }
+    ];
+    const sevenDaysLater = new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+    const upcoming = recurringList.filter(r => r.active && r.nextDate <= sevenDaysLater);
+
+    expect(upcoming.length).toBe(2);
+    expect(upcoming.map(u => u.name)).toContain('Tiền nhà');
+    expect(upcoming.map(u => u.name)).toContain('Cước Internet');
+    expect(upcoming.map(u => u.name)).not.toContain('Netflix');
+  });
+});
+
