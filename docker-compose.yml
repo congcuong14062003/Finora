@@ -1,0 +1,9 @@
+services:
+  finora:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finora-app
+    ports:
+      - "8080:80"
+    restart: unless-stopped
